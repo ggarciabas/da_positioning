@@ -57,33 +57,27 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
     m_ij.push_back(std::vector<long double>());
     for(int i = 0; i < N; i++) // location
     {
-      m_ji[j].push_back(0.0);
+      m_ji[j].push_back(0.99);
       m_ij[j].push_back(1.0); // para nao dar conflito com a primeira atualizaçao de bij
     }
     z.push_back(0.0);
     o.push_back(0.0);
   }    
 
-  long double temp = 0.60, t_min=1e-6, validate, alpha; // alpha punicao de capacidade
+  long double temp = 1e-1, t_min=1e-6, validate, alpha; // alpha punicao de capacidade
   int check, p_max;
 
-  std::cout << std::fixed << std::setprecision(10) << std::setw(10) << std::setfill(' ');
+  //std::cout << std::fixed << std::setprecision(10) << std::setw(10) << std::setfill(' ');
 
   while (temp > t_min) {
     alpha = 1-temp;
-    for(int j = 0; j < N; j++)
-    {
-      for(int i = 0; i < N; i++)
-      {
-        b_ji[j][i] = b_ji[j][i]*m_ij[i][j];
-      }
-    }
     std::cout << "...... BIJ\n";
     for(int j = 0; j < N; j++)
     {
       std::cout << "[";
       for(int i = 0; i < N; i++)
       {
+        b_ji[j][i] = b_ji[j][i]*(1.0-m_ji[j][i]);
         std::cout << b_ji[j][i] << "\t";
       }  
       std::cout << "]\n";    
@@ -132,7 +126,7 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
 
 
     /// by loc    
-    for(int j = 0; j < N; j++)
+    /*for(int j = 0; j < N; j++)
     {
       for(int i = 0; i < N; i++)
       {
@@ -186,7 +180,7 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         }
       }
       std::cout << " = " << validate << " : " << p_max << "]\n";
-    }    
+    }    */
 
     // test
     std::cout << "...... OI\n";
