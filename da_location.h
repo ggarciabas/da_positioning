@@ -73,7 +73,11 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         if (m_ji[j][i] == 1.0) {
           check++;
         }
-        o[i] = max;
+        if (max > 0.8) {
+          o[i] = 1.0;
+        } else {
+          o[i] = 0.0;
+        }
       }
       std::cout << " = " << validate << " : " << p_max << "]\n";
     }  
