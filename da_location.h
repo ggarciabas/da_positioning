@@ -29,6 +29,7 @@ void PrintMatrix (std::vector<std::vector<long double> > matrix, std::string nam
 std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<long double> > b_ji, int N, std::string path) {
   std::vector<std::vector<long double> > m_ji;
   std::vector<long double> z;
+  std::vector<long double> o; // localizacao ocupada
 
   for(int j = 0; j < N; j++) // uav
   {
@@ -38,15 +39,17 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
       m_ji[j].push_back(0.0);
     }
     z.push_back(0.0);
+    o.push_back(0.0);
   }    
 
-  long double temp = 0.9, t_min=1e-6, validate, max;
+  long double temp = 0.99, t_min=1e-2, validate, max, alpha; // alpha punicao de capacidade
   int check, p_max;
 
   std::cout << std::setprecision(9) << std::setfill('0');
 
   while (temp > t_min) {
-    std::cout << "############################################################################### TEMP = " << temp << std::endl;
+    alpha = 1-temp;
+    std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << std::endl;
     check = 0;
     for(int j = 0; j < N; j++) // uavs
     {
@@ -56,11 +59,11 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
       std::cout << "[";
       for(int k = 0; k < N; k++) // locations
       {
-        z[j] += std::exp(-(b_ji[j][k]/temp)); // --> sem capacidade
+        z[j] += std::exp(-((b_ji[j][k]+alpha*o[k])/temp)); // --> sem capacidade
       }
       for(int i = 0; i < N; i++) // location
       {
-        m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[j];
+        m_ji[j][i] = std::exp(-((b_ji[j][i]+alpha*o[i])/temp)) / z[j];
         validate += m_ji[j][i];
         std::cout << m_ji[j][i] << "\t";
         if (m_ji[j][i] > max) {
@@ -70,6 +73,7 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         if (m_ji[j][i] == 1.0) {
           check++;
         }
+        o[i] = max;
       }
       std::cout << " = " << validate << " : " << p_max << "]\n";
     }  
