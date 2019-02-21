@@ -23,7 +23,8 @@ int main () {
     // os << path << "/bij_teste.txt";
     // PrintMatrix (b_ij, os.str());
 
-    positioning(b_ij, N, path);
+    // positioning(b_ij, N, path);
+    da_positioning(b_ij, N, path);
 
     // exhaustive(b_ij, N);
 

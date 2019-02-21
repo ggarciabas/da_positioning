@@ -26,6 +26,78 @@ void PrintMatrix (std::vector<std::vector<long double> > matrix, std::string nam
   file.close();
 }
 
+std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<long double> > b_ji, int N, std::string path) {
+  std::vector<std::vector<long double> > m_ji;
+  std::vector<long double> z;
+
+  for(int j = 0; j < N; j++) // uav
+  {
+    m_ji.push_back(std::vector<long double>());
+    for(int i = 0; i < N; i++) // location
+    {
+      m_ji[j].push_back(0.0);
+    }
+    z.push_back(0.0);
+  }    
+
+  long double temp = 0.9, t_min=1e-6, validate, max;
+  int check, p_max;
+
+  std::cout << std::setprecision(9) << std::setfill('0');
+
+  while (temp > t_min) {
+    std::cout << "############################################################################### TEMP = " << temp << std::endl;
+    check = 0;
+    for(int j = 0; j < N; j++) // uavs
+    {
+      z[j] = 0.0;
+      validate = 0.0;
+      max = 0.0;
+      std::cout << "[";
+      for(int k = 0; k < N; k++) // locations
+      {
+        z[j] += std::exp(-(b_ji[j][k]/temp)); // --> sem capacidade
+      }
+      for(int i = 0; i < N; i++) // location
+      {
+        m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[j];
+        validate += m_ji[j][i];
+        std::cout << m_ji[j][i] << "\t";
+        if (m_ji[j][i] > max) {
+          max = m_ji[j][i];
+          p_max = i;
+        }
+        if (m_ji[j][i] == 1.0) {
+          check++;
+        }
+      }
+      std::cout << " = " << validate << " : " << p_max << "]\n";
+    }  
+
+    // test
+    std::cout << "...... BIJ\n";
+    for(int j = 0; j < N; j++)
+    {
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        std::cout << b_ji[j][i] << "\t";
+      }  
+      std::cout << "]\n";    
+    }
+    
+
+    if (check == N) {
+      std::cout << "--> saindo\n";
+      break;
+    }
+      
+    temp *= 0.9;
+  }
+
+  return m_ji;
+}
+
 std::vector<std::vector<long double> > positioning (std::vector<std::vector<long double> > b_ij, int N, std::string path) {
   // normalize bij
   double max = 0;
@@ -109,40 +181,8 @@ std::vector<std::vector<long double> > positioning (std::vector<std::vector<long
           // calculate \lamb_{ij}
           // NS_LOG_DEBUG ("MIJ [" << i << "," << j << "] : " << m_ij[i][j]);
           lamb_ij[i][j] = m_ij[i][j] * b_ij[i][j];
-          if (isnan(lamb_ij[i][j])) {
-            os.str("");
-            os << path << "/B_q_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (q_ij, os.str());
-            os.str("");
-            os << path << "/B_o_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (o_ij, os.str());
-            os.str("");
-            os << path << "/B_lamb_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (lamb_ij, os.str());
-            os.str("");
-            os << path << "/B_m_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (m_ij, os.str());
-            std::cout << "Lab is nan: ["<<i<<","<<j<<"] " << m_ij[i][j] << " * " << b_ij[i][j] << " = " << lamb_ij[i][j] << "   " << itB;
-            exit(0);
-          }
           // calculate Q_{ij}
           q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];
-          if (isnan(q_ij[i][j])) {
-            os.str("");
-            os << path << "/B_q_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (q_ij, os.str());
-            os.str("");
-            os << path << "/B_o_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (o_ij, os.str());
-            os.str("");
-            os << path << "/B_lamb_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (lamb_ij, os.str());
-            os.str("");
-            os << path << "/B_m_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (m_ij, os.str());
-            std::cout << "qij is nan:  " << itB;
-            exit(0);
-          }
           // calculate m_{ij}
           new_mij = expl(q_ij[i][j] / (long double) temp);
           if (m_ij[i][j] != new_mij) { // mudou!
@@ -150,22 +190,6 @@ std::vector<std::vector<long double> > positioning (std::vector<std::vector<long
             converge_C = false;
           }
           m_ij[i][j] = new_mij;
-          if (isnan(m_ij[i][j])) {
-            os.str("");
-            os << path << "/B_q_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (q_ij, os.str());
-            os.str("");
-            os << path << "/B_o_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (o_ij, os.str());
-            os.str("");
-            os << path << "/B_lamb_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (lamb_ij, os.str());
-            os.str("");
-            os << path << "/B_m_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (m_ij, os.str());
-            std::cout << "mij is nan  " << itB;
-            exit(0);
-          }
         }
       }
 
