@@ -28,15 +28,18 @@ void PrintMatrix (std::vector<std::vector<long double> > matrix, std::string nam
 
 std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<long double> > b_ji, int N, std::string path) {
   std::vector<std::vector<long double> > m_ji;
+  std::vector<std::vector<long double> > m_ij;
   std::vector<long double> z;
   std::vector<long double> o; // localizacao ocupada
 
   for(int j = 0; j < N; j++) // uav
   {
     m_ji.push_back(std::vector<long double>());
+    m_ij.push_back(std::vector<long double>());
     for(int i = 0; i < N; i++) // location
     {
       m_ji[j].push_back(0.0);
+      m_ij[j].push_back(0.0);
     }
     z.push_back(0.0);
     o.push_back(0.0);
@@ -45,7 +48,7 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
   long double temp = 0.99, t_min=1e-6, validate, max, alpha; // alpha punicao de capacidade
   int check, p_max;
 
-  std::cout << std::setprecision(9) << std::setfill('0');
+  std::cout << std::setprecision(9) << std::setfill('0') << std::setw(9);
 
   while (temp > t_min) {
     alpha = 1-temp;
@@ -67,7 +70,7 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         // m_ji[j][i] = std::exp(-((b_ji[j][i]+o[i])/temp)) / z[j];
         m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[j]; // --> sem capacidade
         validate += m_ji[j][i];
-        std::cout << m_ji[j][i] << "\t";
+        std::cout << m_ji[j][i] << "\t\t";
         if (m_ji[j][i] > max) {
           max = m_ji[j][i];
           p_max = i;
@@ -79,13 +82,24 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         if (m_ji[j][i] == 1.0) {
           check++;
         }
-        if (max > 0.8) {
+        /*if (max > 0.8) {
           o[i] = 1.0;
         } else {
           o[i] = 0.0;
-        }
+        }*/
       }
       std::cout << " = " << validate << " : " << p_max << "]\n";
+      // frufru
+      std::cout << "[";
+      for(int j = 0; j < N; j++) // uavs
+      {
+        if (j == p_max) {
+          std::cout << "**********\t\t";
+        } else {
+          std::cout << "           \t\t";
+        }
+      }
+      std::cout << "]" << std::endl;
     }  
     std::cout << "::::::::::::::::::::::::::::::::::::::::::::::::: BY Locs\n";
     for(int i = 0; i < N; i++) // location
@@ -100,22 +114,33 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
       }
       for(int j = 0; j < N; j++) // uavs
       {
-        m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[i]; // --> sem capacidade
-        validate += m_ji[j][i];
-        std::cout << m_ji[j][i] << "\t";
-        if (m_ji[j][i] > max) {
-          max = m_ji[j][i];
+        m_ij[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[i]; // --> sem capacidade
+        validate += m_ij[j][i];
+        std::cout << m_ij[j][i] << "\t\t";
+        if (m_ij[j][i] > max) {
+          max = m_ij[j][i];
           p_max = j;
         }
-        if (std::isnan(m_ji[j][i])) {
-          std::cout << "NAN!\n";
+        if (std::isnan(m_ij[j][i])) {
+          std::cout << "NAN m_ij!\n";
           exit(1);
         }
-        if (m_ji[j][i] == 1.0) {
+        if (m_ij[j][i] == 1.0) {
           check++;
         }
       }
       std::cout << " = " << validate << " : " << p_max << "]\n";
+      // frufru
+      std::cout << "[";
+      for(int j = 0; j < N; j++) // uavs
+      {
+        if (j == p_max) {
+          std::cout << "**********\t\t";
+        } else {
+          std::cout << "           \t\t";
+        }
+      }
+      std::cout << "]" << std::endl;
     }
 
     // test
