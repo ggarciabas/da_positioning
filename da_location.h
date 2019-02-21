@@ -32,6 +32,25 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
   std::vector<long double> z;
   std::vector<long double> o; // localizacao ocupada
 
+  // normalize bij
+  long double max = 0;
+  for (unsigned j = 0; j < N; ++j) // UAV
+  {
+    for (unsigned i = 0; i < N; ++i) // LOC
+    {
+      if (b_ji[j][i] > max) {
+        max = b_ji[j][i];
+      }
+    }
+  }
+  for (unsigned j = 0; j < N; ++j) // UAV
+  {
+    for (unsigned i = 0; i < N; ++i) // LOC
+    {
+      b_ji[j][i] /= max;
+    }
+  }
+
   for(int j = 0; j < N; j++) // uav
   {
     m_ji.push_back(std::vector<long double>());
@@ -39,27 +58,43 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
     for(int i = 0; i < N; i++) // location
     {
       m_ji[j].push_back(0.0);
-      m_ij[j].push_back(0.0);
+      m_ij[j].push_back(1.0); // para nao dar conflito com a primeira atualizaçao de bij
     }
     z.push_back(0.0);
     o.push_back(0.0);
   }    
 
-  long double temp = 0.99, t_min=1e-6, validate, max, alpha; // alpha punicao de capacidade
+  long double temp = 0.60, t_min=1e-6, validate, alpha; // alpha punicao de capacidade
   int check, p_max;
 
-  std::cout << std::setprecision(9) << std::setfill('0') << std::setw(9);
+  std::cout << std::fixed << std::setprecision(10) << std::setw(10) << std::setfill(' ');
 
   while (temp > t_min) {
     alpha = 1-temp;
+    for(int j = 0; j < N; j++)
+    {
+      for(int i = 0; i < N; i++)
+      {
+        b_ji[j][i] = b_ji[j][i]*m_ij[i][j];
+      }
+    }
+    std::cout << "...... BIJ\n";
+    for(int j = 0; j < N; j++)
+    {
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        std::cout << b_ji[j][i] << "\t";
+      }  
+      std::cout << "]\n";    
+    }
     std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << std::endl;
-    check = 0;
+    check = 0;    
     for(int j = 0; j < N; j++) // uavs
     {
       z[j] = 0.0;
       validate = 0.0;
       max = 0.0;
-      std::cout << "[";
       for(int k = 0; k < N; k++) // locations
       {
         // z[j] += std::exp(-((b_ji[j][k]+o[k])/temp)); 
@@ -70,7 +105,6 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         // m_ji[j][i] = std::exp(-((b_ji[j][i]+o[i])/temp)) / z[j];
         m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[j]; // --> sem capacidade
         validate += m_ji[j][i];
-        std::cout << m_ji[j][i] << "\t\t";
         if (m_ji[j][i] > max) {
           max = m_ji[j][i];
           p_max = i;
@@ -82,32 +116,45 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         if (m_ji[j][i] == 1.0) {
           check++;
         }
-        /*if (max > 0.8) {
-          o[i] = 1.0;
-        } else {
-          o[i] = 0.0;
-        }*/
       }
-      std::cout << " = " << validate << " : " << p_max << "]\n";
       // frufru
       std::cout << "[";
-      for(int j = 0; j < N; j++) // uavs
-      {
-        if (j == p_max) {
-          std::cout << "**********\t\t";
+      for(int i = 0; i < N; i++) // location
+      {        
+        if (i == p_max) {
+          std::cout << m_ji[j][i] << "*\t\t";
         } else {
-          std::cout << "           \t\t";
+          std::cout << m_ji[j][i] << "\t\t";
         }
       }
-      std::cout << "]" << std::endl;
+      std::cout << " = " << validate << " : " << p_max << "]\n";
     }  
+
+
+    /// by loc    
+    for(int j = 0; j < N; j++)
+    {
+      for(int i = 0; i < N; i++)
+      {
+        b_ji[j][i] = b_ji[j][i]*m_ji[j][i];
+      }
+    }
+    std::cout << "...... BIJ\n";
+    for(int j = 0; j < N; j++)
+    {
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        std::cout << b_ji[j][i] << "\t";
+      }  
+      std::cout << "]\n";    
+    }
     std::cout << "::::::::::::::::::::::::::::::::::::::::::::::::: BY Locs\n";
     for(int i = 0; i < N; i++) // location
     {
       z[i] = 0.0;
       validate = 0.0;
       max = 0.0;
-      std::cout << "[";
       for(int k = 0; k < N; k++) // uavs
       {
         z[i] += std::exp(-(b_ji[k][i]/temp)); // --> sem capacidade
@@ -116,7 +163,6 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
       {
         m_ij[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[i]; // --> sem capacidade
         validate += m_ij[j][i];
-        std::cout << m_ij[j][i] << "\t\t";
         if (m_ij[j][i] > max) {
           max = m_ij[j][i];
           p_max = j;
@@ -129,19 +175,18 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
           check++;
         }
       }
-      std::cout << " = " << validate << " : " << p_max << "]\n";
       // frufru
       std::cout << "[";
       for(int j = 0; j < N; j++) // uavs
       {
         if (j == p_max) {
-          std::cout << "**********\t\t";
+          std::cout << m_ij[j][i] << "*\t\t";
         } else {
-          std::cout << "           \t\t";
+          std::cout << m_ij[j][i] << "\t\t";
         }
       }
-      std::cout << "]" << std::endl;
-    }
+      std::cout << " = " << validate << " : " << p_max << "]\n";
+    }    
 
     // test
     std::cout << "...... OI\n";
