@@ -42,7 +42,7 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
     o.push_back(0.0);
   }    
 
-  long double temp = 0.99, t_min=1e-2, validate, max, alpha; // alpha punicao de capacidade
+  long double temp = 0.99, t_min=1e-6, validate, max, alpha; // alpha punicao de capacidade
   int check, p_max;
 
   std::cout << std::setprecision(9) << std::setfill('0');
@@ -59,16 +59,22 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
       std::cout << "[";
       for(int k = 0; k < N; k++) // locations
       {
-        z[j] += std::exp(-((b_ji[j][k]+alpha*o[k])/temp)); // --> sem capacidade
+        // z[j] += std::exp(-((b_ji[j][k]+o[k])/temp)); 
+        z[j] += std::exp(-(b_ji[j][k]/temp)); // --> sem capacidade
       }
       for(int i = 0; i < N; i++) // location
       {
-        m_ji[j][i] = std::exp(-((b_ji[j][i]+alpha*o[i])/temp)) / z[j];
+        // m_ji[j][i] = std::exp(-((b_ji[j][i]+o[i])/temp)) / z[j];
+        m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[j]; // --> sem capacidade
         validate += m_ji[j][i];
         std::cout << m_ji[j][i] << "\t";
         if (m_ji[j][i] > max) {
           max = m_ji[j][i];
           p_max = i;
+        }
+        if (std::isnan(m_ji[j][i])) {
+          std::cout << "NAN!\n";
+          exit(1);
         }
         if (m_ji[j][i] == 1.0) {
           check++;
@@ -81,8 +87,45 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
       }
       std::cout << " = " << validate << " : " << p_max << "]\n";
     }  
+    std::cout << "::::::::::::::::::::::::::::::::::::::::::::::::: BY Locs\n";
+    for(int i = 0; i < N; i++) // location
+    {
+      z[i] = 0.0;
+      validate = 0.0;
+      max = 0.0;
+      std::cout << "[";
+      for(int k = 0; k < N; k++) // uavs
+      {
+        z[i] += std::exp(-(b_ji[k][i]/temp)); // --> sem capacidade
+      }
+      for(int j = 0; j < N; j++) // uavs
+      {
+        m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[i]; // --> sem capacidade
+        validate += m_ji[j][i];
+        std::cout << m_ji[j][i] << "\t";
+        if (m_ji[j][i] > max) {
+          max = m_ji[j][i];
+          p_max = j;
+        }
+        if (std::isnan(m_ji[j][i])) {
+          std::cout << "NAN!\n";
+          exit(1);
+        }
+        if (m_ji[j][i] == 1.0) {
+          check++;
+        }
+      }
+      std::cout << " = " << validate << " : " << p_max << "]\n";
+    }
 
     // test
+    std::cout << "...... OI\n";
+    std::cout << "[";
+    for(int i = 0; i < N; i++)
+    {
+      std::cout << o[i] << "\t";
+    }  
+    std::cout << "]\n";    
     std::cout << "...... BIJ\n";
     for(int j = 0; j < N; j++)
     {
@@ -102,6 +145,11 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
       
     temp *= 0.9;
   }
+
+  std::ostringstream os;
+  os.str("");
+  os << path << "/F_mij.txt";
+  PrintMatrix (m_ji, os.str());
 
   return m_ji;
 }
