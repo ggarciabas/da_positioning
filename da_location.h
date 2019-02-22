@@ -57,29 +57,17 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
   int odd_even = 0;
   alpha = 1.1; // aumenta 10%
   unsigned uav, loc;
+
+  std::ofstream file;
+  std::ostringstream n_path;
+  n_path << path << "_b_graphic.txt";
+  file.open(n_path.str().c_str(), std::ofstream::out);
+  file << N << std::endl;
   while (temp > t_min) {
     // alpha = 1-temp;
-    std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << " ODDEVEN = " << odd_even << std::endl;    
-    // // normalizando matriz bji completa, deixando valores 0-1
-    // max = 0;
-    // for (unsigned j = 0; j < N; ++j) // UAV
-    // {
-    //   for (unsigned i = 0; i < N; ++i) // LOC
-    //   {
-    //     b_ji[j][i] = b_ji[j][i]*(1.0-m_ji[j][i]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
-    //     if (b_ji[j][i] > max) {
-    //       max = b_ji[j][i];
-    //     }
-    //   }
-    // }
-    // for (unsigned j = 0; j < N; ++j) // UAV
-    // {
-    //   for (unsigned i = 0; i < N; ++i) // LOC
-    //   {
-    //     b_ji[j][i] /= max; // manter bij sempre com valores normalizados 0-1, e permitir que seja evoluido de acordo com Mij
-    //   }
-    // }
-    if (odd_even%2==0) {
+    std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << " ODDEVEN = " << odd_even << std::endl;   
+
+    if (odd_even%2==0) {      
       // normalizando bji por linhas
       for (uav = 0; uav < N; ++uav) // UAV
       {
@@ -90,14 +78,14 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           if (b_ji[uav][loc] > max) {
             max = b_ji[uav][loc];
           }
-          if (b_ji[uav][loc] < 1e-5) {
-            b_ji[uav][loc] = 1e-5;
-          }
         }
         for (loc = 0; loc < N; ++loc) // LOC
         {
           b_ji[uav][loc] /= max;
+          file << b_ji[uav][loc] << ",";
         }
+        // o_conflict[uav] = 0; // reiniciando conflito
+        o_loc[uav] = 0.1;
       }
 
       // imprimindo valores
@@ -138,22 +126,19 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         z = 0.0;
         for(loc = 0; loc < N; loc++) // locations
         {        
-          z += std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)); 
+          z += std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)); 
         }
 
         max = 0.0;
         validate = 0.0;
         for(loc = 0; loc < N; loc++) // locations
         {
-          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)) / z;
+          // m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)) / z; // utilizar os dois está aplicando punição e aproximando um já selecionado com um outro de valor maior e proximo
+          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) / z;
           validate += m_ji[uav][loc];
           if (m_ji[uav][loc] > max) {
             max = m_ji[uav][loc];
             p_max = loc;
-          }
-          if (m_ji[uav][loc] > 1.0) {
-            std::cout << "Maior que 1! [" << m_ji[uav][loc] << "]\n b_ji = " << b_ji[uav][loc] << " o_loc: " << o_loc[loc] << " temp: " << temp << " z: " << z << " insideexp: " << -((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp) << " exp: " << std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)) << std::endl;
-            exit(1);
           }
           if (std::isnan(m_ji[uav][loc])) {
             std::cout << "NAN!\n";
@@ -167,6 +152,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           }
         }
         o_loc[p_max] *= alpha; // a localização o qual o UAV selecionou recebe uma punicao para que outros UAV prefiram outras locs
+        // o_conflict[p_max]++;
         // frufru
         std::cout << "[";
         for(loc = 0; loc < N; loc++) // location
@@ -178,7 +164,16 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           }
         }
         std::cout << " = " << validate << " : " << p_max << "]\n";
-      }     
+      }  
+
+      // for (uav = 0; uav < N; ++uav) // UAV
+      // {
+      //   if (o_conflict[uav] == 1) { // somente um uav foi selecionado para a uav
+      //     o_uav[uav] *= (2-alpha);
+      //   } else if (o_conflict[uav] == 0) {
+      //     o_uav[uav] = 0.1;
+      //   }
+      // }   
 
     } else {
       // normalizando bji por coluna
@@ -191,23 +186,23 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           if (b_ji[uav][loc] > max) {
             max = b_ji[uav][loc];
           }
-          if (b_ji[uav][loc] < 1e-5) {
-            b_ji[uav][loc] = 1e-5;
-          }
         }
         for (uav = 0; uav < N; ++uav) // UAV
         {
           b_ji[uav][loc] /= max;
+          file << b_ji[uav][loc] << " ";
         }
+        // o_conflict[loc] = 0; // reiniciando conflito
+        o_uav[loc] = 0.1;
       }
 
       // imprimindo valores
       {
         std::cout << "...... BJI - por coluna\n";
-        for(loc = 0; loc< N; loc++)
+        for(uav = 0; uav < N; uav++)
         {
           std::cout << "[";
-          for(uav = 0; uav < N; uav++)
+          for(loc = 0; loc< N; loc++)
           {
             std::cout << b_ji[uav][loc] << "\t\t";
           }  
@@ -239,25 +234,22 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         z = 0.0;
         for(uav = 0; uav < N; uav++) // uavs
         {        
-          z += std::exp(-((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp)); 
+          z += std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)); 
         }
 
         max = 0.0;
         validate = 0.0;
         for(uav = 0; uav < N; uav++) // uavs
         {
-          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp)) / z;
+          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)) / z;
           validate += m_ji[uav][loc];
           if (m_ji[uav][loc] > max) {
             max = m_ji[uav][loc];
             p_max = uav;
           }
-          if (m_ji[uav][loc] > 1.0) {
-            std::cout << "Maior que 1! [" << m_ji[uav][loc] << "]\n b_ji = " << b_ji[uav][loc] << " o_uav: " << o_uav[uav] << " temp: " << temp << " z: " << z << " insideexp: " << -((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp) << " exp: " << std::exp(-((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp)) << std::endl;
-            exit(1);
-          }
           if (std::isnan(m_ji[uav][loc])) {
             std::cout << "NAN!\n";
+            file.close();
             exit(1);
           }
           if (m_ji[uav][loc] == 1.0) {
@@ -268,18 +260,29 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           }
         }
         o_uav[p_max] *= alpha; // a localização o qual o UAV selecionou recebe uma punicao para que outros UAV prefiram outras locs
-        // frufru
+        // o_conflict[p_max]++;    
+      }
+
+      // frufru      
+      for(uav = 0; uav < N; uav++) // uavs
+      {      
         std::cout << "[";
-        for(uav = 0; uav < N; uav++) // uavs
-        {        
-          if (uav == p_max) {
-            std::cout << m_ji[uav][loc] << "*\t\t";
-          } else {
-            std::cout << m_ji[uav][loc] << "\t\t";
-          }
+        for (loc = 0; loc < N; ++loc) // LOC
+        {  
+          std::cout << m_ji[uav][loc] << "\t\t";
         }
-        std::cout << " = " << validate << " : " << p_max << "]\n";
-      }     
+        std::cout << "]\n";
+      }      
+
+      // for (loc = 0; loc < N; ++loc) // LOC
+      // {
+      //   if (o_conflict[loc] == 1) { // somente um uav foi selecionado para a uav
+      //     o_uav[loc] *= (2-alpha);
+      //   } else if (o_conflict[loc] == 0) { // ninguem selecionou volta ao default
+      //     o_uav[loc] = 0.1;
+      //   }
+      // }
+
     }  
 
     if (check == N) {
@@ -289,7 +292,9 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
       
     temp *= 0.9;
     odd_even++;
+    file << std::endl;
   }
+  file.close();
 
   std::ostringstream os;
   os.str("");
