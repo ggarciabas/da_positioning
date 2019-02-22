@@ -32,23 +32,15 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
   std::vector<long double> z;
   std::vector<long double> o; // localizacao ocupada
 
-  // normalize bij
-  long double max = 0;
-  for (unsigned j = 0; j < N; ++j) // UAV
+  std::cout << "...... BIJ initial\n";
+  for(int j = 0; j < N; j++)
   {
-    for (unsigned i = 0; i < N; ++i) // LOC
+    std::cout << "[";
+    for(int i = 0; i < N; i++)
     {
-      if (b_ji[j][i] > max) {
-        max = b_ji[j][i];
-      }
-    }
-  }
-  for (unsigned j = 0; j < N; ++j) // UAV
-  {
-    for (unsigned i = 0; i < N; ++i) // LOC
-    {
-      b_ji[j][i] /= max;
-    }
+      std::cout << b_ji[j][i] << "\t";
+    }  
+    std::cout << "]\n";    
   }
 
   for(int j = 0; j < N; j++) // uav
@@ -64,40 +56,101 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
     o.push_back(0.0);
   }    
 
-  long double temp = 1e-1, t_min=1e-6, validate, alpha; // alpha punicao de capacidade
+  long double temp = 1e-1, t_min=1e-6, validate, alpha, max; // alpha punicao de capacidade
   int check, p_max;
 
-  //std::cout << std::fixed << std::setprecision(10) << std::setw(10) << std::setfill(' ');
-
+  std::cout << std::fixed << std::setprecision(10) << std::setw(10) << std::setfill(' ');
+  std::cout << "============================> STARTING\n";
+  int odd_even = 1;
   while (temp > t_min) {
     alpha = 1-temp;
-    std::cout << "...... BIJ\n";
+    std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << std::endl;    
+    // // normalizando matriz bji completa, deixando valores 0-1
+    // max = 0;
+    // for (unsigned j = 0; j < N; ++j) // UAV
+    // {
+    //   for (unsigned i = 0; i < N; ++i) // LOC
+    //   {
+    //     b_ji[j][i] = b_ji[j][i]*(1.0-m_ji[j][i]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
+    //     if (b_ji[j][i] > max) {
+    //       max = b_ji[j][i];
+    //     }
+    //   }
+    // }
+    // for (unsigned j = 0; j < N; ++j) // UAV
+    // {
+    //   for (unsigned i = 0; i < N; ++i) // LOC
+    //   {
+    //     b_ji[j][i] /= max; // manter bij sempre com valores normalizados 0-1, e permitir que seja evoluido de acordo com Mij
+    //   }
+    // }
+    if (odd_even%2==0) {
+      // normalizando bji por colunas
+      for (unsigned i = 0; i < N; ++i) // LOC
+      {
+        max = 0.0;
+        for (unsigned j = 0; j < N; ++j) // UAV
+        {
+          b_ji[j][i] = b_ji[j][i]*(1.0-m_ji[j][i]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
+          if (b_ji[j][i] > max) {
+            max = b_ji[j][i];
+          }
+        }
+        for (unsigned j = 0; j < N; ++j) // UAV
+        {
+          b_ji[j][i] /= max;
+        }
+      }
+    } else {
+      // normalizando bji por colunas
+      for (unsigned j = 0; j < N; ++j) // UAV
+      {
+        max = 0.0;
+        for (unsigned i = 0; i < N; ++i) // LOC
+        {
+          b_ji[j][i] = b_ji[j][i]*(1.0-m_ji[j][i]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
+          if (b_ji[j][i] > max) {
+            max = b_ji[j][i];
+          }
+        }
+        for (unsigned i = 0; i < N; ++i) // LOC
+        {
+          b_ji[j][i] /= max;
+        }
+      }
+    }
+
+    std::cout << "...... BJI\n";
     for(int j = 0; j < N; j++)
     {
       std::cout << "[";
       for(int i = 0; i < N; i++)
       {
-        b_ji[j][i] = b_ji[j][i]*(1.0-m_ji[j][i]);
-        std::cout << b_ji[j][i] << "\t";
+        std::cout << b_ji[j][i] << "\t\t";
       }  
       std::cout << "]\n";    
     }
-    std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << std::endl;
+    std::cout << "...... MJI\n";
+    // for(int i = 0; i < N; i++) // verificar necessidade, pois as infos das ultimas linhas de mji noa serao aplicadas nas primeiras quando reiniciar o ciclo
+    // {
+    //   o[i] = 0.0; // limpando informações
+    // }
     check = 0;    
     for(int j = 0; j < N; j++) // uavs
-    {
+    {        
       z[j] = 0.0;
-      validate = 0.0;
-      max = 0.0;
       for(int k = 0; k < N; k++) // locations
-      {
-        // z[j] += std::exp(-((b_ji[j][k]+o[k])/temp)); 
-        z[j] += std::exp(-(b_ji[j][k]/temp)); // --> sem capacidade
+      {        
+        z[j] += std::exp(-((b_ji[j][k]+alpha*o[k])/temp)); 
+        // z[j] += std::exp(-(b_ji[j][k]/temp)); // --> sem capacidade
       }
+
+      max = 0.0;
+      validate = 0.0;
       for(int i = 0; i < N; i++) // location
       {
-        // m_ji[j][i] = std::exp(-((b_ji[j][i]+o[i])/temp)) / z[j];
-        m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[j]; // --> sem capacidade
+        m_ji[j][i] = std::exp(-((b_ji[j][i]+alpha*o[i])/temp)) / z[j];
+        // m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[j]; // --> sem capacidade
         validate += m_ji[j][i];
         if (m_ji[j][i] > max) {
           max = m_ji[j][i];
@@ -108,9 +161,11 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
           exit(1);
         }
         if (m_ji[j][i] == 1.0) {
+          std::cout << "Fixed in 1.0! [" << j << "]\n";
           check++;
         }
       }
+      o[p_max] = 1.0;
       // frufru
       std::cout << "[";
       for(int i = 0; i < N; i++) // location
@@ -183,23 +238,23 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
     }    */
 
     // test
-    std::cout << "...... OI\n";
-    std::cout << "[";
-    for(int i = 0; i < N; i++)
-    {
-      std::cout << o[i] << "\t";
-    }  
-    std::cout << "]\n";    
-    std::cout << "...... BIJ\n";
-    for(int j = 0; j < N; j++)
-    {
-      std::cout << "[";
-      for(int i = 0; i < N; i++)
-      {
-        std::cout << b_ji[j][i] << "\t";
-      }  
-      std::cout << "]\n";    
-    }
+    // std::cout << "...... OI\n";
+    // std::cout << "[";
+    // for(int i = 0; i < N; i++)
+    // {
+    //   std::cout << o[i] << "\t";
+    // }  
+    // std::cout << "]\n";    
+    // std::cout << "...... BIJ\n";
+    // for(int j = 0; j < N; j++)
+    // {
+    //   std::cout << "[";
+    //   for(int i = 0; i < N; i++)
+    //   {
+    //     std::cout << b_ji[j][i] << "\t";
+    //   }  
+    //   std::cout << "]\n";    
+    // }
     
 
     if (check == N) {
@@ -208,6 +263,7 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
     }
       
     temp *= 0.9;
+    odd_even++;
   }
 
   std::ostringstream os;
@@ -303,22 +359,6 @@ std::vector<std::vector<long double> > positioning (std::vector<std::vector<long
           lamb_ij[i][j] = m_ij[i][j] * b_ij[i][j];
           // calculate Q_{ij}
           q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];
-          if (isnan(q_ij[i][j])) {
-            os.str("");
-            os << path << "/B_q_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (q_ij, os.str());
-            os.str("");
-            os << path << "/B_o_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (o_ij, os.str());
-            os.str("");
-            os << path << "/B_lamb_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (lamb_ij, os.str());
-            os.str("");
-            os << path << "/B_m_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (m_ij, os.str());
-            std::cout << "qij is nan:  " << itB;
-            exit(0);
-          }
           // calculate m_{ij}
           new_mij = expl(- (q_ij[i][j] / (long double) temp));
           if (m_ij[i][j] != new_mij) { // mudou!
