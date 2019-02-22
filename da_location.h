@@ -126,7 +126,7 @@ std::vector<std::vector<long double> > positioning (std::vector<std::vector<long
             exit(0);
           }
           // calculate Q_{ij}
-          q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];
+          q_ij[i][j] = lamb_ij[i][j] * b_ij[i][j] - gamma * o_ij[i][j];
           if (isnan(q_ij[i][j])) {
             os.str("");
             os << path << "/B_q_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
@@ -144,7 +144,7 @@ std::vector<std::vector<long double> > positioning (std::vector<std::vector<long
             exit(0);
           }
           // calculate m_{ij}
-          new_mij = expl(q_ij[i][j] / (long double) temp);
+          new_mij = expl(- (q_ij[i][j] / (long double) temp));
           if (m_ij[i][j] != new_mij) { // mudou!
             converge_B = false;
             converge_C = false;
