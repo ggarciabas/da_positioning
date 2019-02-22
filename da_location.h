@@ -120,6 +120,14 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           std::cout << o_loc[i] << "\t\t";
         }  
         std::cout << "]\n";   
+
+        std::cout << "...... O_UAV\n";
+        std::cout << "[";
+        for(int i = 0; i < N; i++)
+        {
+          std::cout << o_uav[i] << "\t\t";
+        }  
+        std::cout << "]\n";
       }
 
       std::cout << "...... MJI -- por linha\n";
@@ -130,21 +138,21 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         z = 0.0;
         for(loc = 0; loc < N; loc++) // locations
         {        
-          z += std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)); 
+          z += std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)); 
         }
 
         max = 0.0;
         validate = 0.0;
         for(loc = 0; loc < N; loc++) // locations
         {
-          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) / z;
+          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)) / z;
           validate += m_ji[uav][loc];
           if (m_ji[uav][loc] > max) {
             max = m_ji[uav][loc];
             p_max = loc;
           }
           if (m_ji[uav][loc] > 1.0) {
-            std::cout << "Maior que 1! [" << m_ji[uav][loc] << "]\n b_ji = " << b_ji[uav][loc] << " o_loc: " << o_loc[loc] << " temp: " << temp << " z: " << z << " insideexp: " << -((b_ji[uav][loc]+o_loc[loc])/temp) << " exp: " << std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) << std::endl;
+            std::cout << "Maior que 1! [" << m_ji[uav][loc] << "]\n b_ji = " << b_ji[uav][loc] << " o_loc: " << o_loc[loc] << " temp: " << temp << " z: " << z << " insideexp: " << -((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp) << " exp: " << std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)) << std::endl;
             exit(1);
           }
           if (std::isnan(m_ji[uav][loc])) {
@@ -173,7 +181,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
       }     
 
     } else {
-      // normalizando bji por linhas
+      // normalizando bji por coluna
       for (loc = 0; loc < N; ++loc) // LOC
       {
         max = 0.0;
@@ -195,16 +203,24 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
 
       // imprimindo valores
       {
-        std::cout << "...... BJI\n";
-        for(int j = 0; j < N; j++)
+        std::cout << "...... BJI - por coluna\n";
+        for(loc = 0; loc< N; loc++)
         {
           std::cout << "[";
-          for(int i = 0; i < N; i++)
+          for(uav = 0; uav < N; uav++)
           {
-            std::cout << b_ji[j][i] << "\t\t";
+            std::cout << b_ji[uav][loc] << "\t\t";
           }  
           std::cout << "]\n";    
         }    
+
+        std::cout << "...... O_UAV\n";
+        std::cout << "[";
+        for(int i = 0; i < N; i++)
+        {
+          std::cout << o_uav[i] << "\t\t";
+        }  
+        std::cout << "]\n";  
 
         std::cout << "...... O_LOC\n";
         std::cout << "[";
@@ -212,10 +228,10 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         {
           std::cout << o_loc[i] << "\t\t";
         }  
-        std::cout << "]\n";   
+        std::cout << "]\n";  
       }
 
-      std::cout << "...... MJI -- por linha\n";
+      std::cout << "...... MJI -- por coluna\n";
       check = 0;   
       cost = 0.0;
       for(loc = 0; loc < N; loc++) // locations
@@ -223,21 +239,21 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         z = 0.0;
         for(uav = 0; uav < N; uav++) // uavs
         {        
-          z += std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)); 
+          z += std::exp(-((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp)); 
         }
 
         max = 0.0;
         validate = 0.0;
         for(uav = 0; uav < N; uav++) // uavs
         {
-          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)) / z;
+          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp)) / z;
           validate += m_ji[uav][loc];
           if (m_ji[uav][loc] > max) {
             max = m_ji[uav][loc];
             p_max = uav;
           }
           if (m_ji[uav][loc] > 1.0) {
-            std::cout << "Maior que 1! [" << m_ji[uav][loc] << "]\n b_ji = " << b_ji[uav][loc] << " o_uav: " << o_uav[uav] << " temp: " << temp << " z: " << z << " insideexp: " << -((b_ji[uav][loc]+o_uav[uav])/temp) << " exp: " << std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)) << std::endl;
+            std::cout << "Maior que 1! [" << m_ji[uav][loc] << "]\n b_ji = " << b_ji[uav][loc] << " o_uav: " << o_uav[uav] << " temp: " << temp << " z: " << z << " insideexp: " << -((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp) << " exp: " << std::exp(-((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp)) << std::endl;
             exit(1);
           }
           if (std::isnan(m_ji[uav][loc])) {
