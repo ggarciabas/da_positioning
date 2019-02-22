@@ -26,6 +26,198 @@ void PrintMatrix (std::vector<std::vector<long double> > matrix, std::string nam
   file.close();
 }
 
+std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<long double> > b_ji, int N, std::string path) {
+  std::vector<std::vector<long double> > m_ji;
+  std::vector<std::vector<long double> > m_ij;
+  std::vector<long double> z;
+  std::vector<long double> o; // localizacao ocupada
+
+  // normalize bij
+  long double max = 0;
+  for (unsigned j = 0; j < N; ++j) // UAV
+  {
+    for (unsigned i = 0; i < N; ++i) // LOC
+    {
+      if (b_ji[j][i] > max) {
+        max = b_ji[j][i];
+      }
+    }
+  }
+  for (unsigned j = 0; j < N; ++j) // UAV
+  {
+    for (unsigned i = 0; i < N; ++i) // LOC
+    {
+      b_ji[j][i] /= max;
+    }
+  }
+
+  for(int j = 0; j < N; j++) // uav
+  {
+    m_ji.push_back(std::vector<long double>());
+    m_ij.push_back(std::vector<long double>());
+    for(int i = 0; i < N; i++) // location
+    {
+      m_ji[j].push_back(0.99);
+      m_ij[j].push_back(1.0); // para nao dar conflito com a primeira atualizaçao de bij
+    }
+    z.push_back(0.0);
+    o.push_back(0.0);
+  }    
+
+  long double temp = 1e-1, t_min=1e-6, validate, alpha; // alpha punicao de capacidade
+  int check, p_max;
+
+  //std::cout << std::fixed << std::setprecision(10) << std::setw(10) << std::setfill(' ');
+
+  while (temp > t_min) {
+    alpha = 1-temp;
+    std::cout << "...... BIJ\n";
+    for(int j = 0; j < N; j++)
+    {
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        b_ji[j][i] = b_ji[j][i]*(1.0-m_ji[j][i]);
+        std::cout << b_ji[j][i] << "\t";
+      }  
+      std::cout << "]\n";    
+    }
+    std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << std::endl;
+    check = 0;    
+    for(int j = 0; j < N; j++) // uavs
+    {
+      z[j] = 0.0;
+      validate = 0.0;
+      max = 0.0;
+      for(int k = 0; k < N; k++) // locations
+      {
+        // z[j] += std::exp(-((b_ji[j][k]+o[k])/temp)); 
+        z[j] += std::exp(-(b_ji[j][k]/temp)); // --> sem capacidade
+      }
+      for(int i = 0; i < N; i++) // location
+      {
+        // m_ji[j][i] = std::exp(-((b_ji[j][i]+o[i])/temp)) / z[j];
+        m_ji[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[j]; // --> sem capacidade
+        validate += m_ji[j][i];
+        if (m_ji[j][i] > max) {
+          max = m_ji[j][i];
+          p_max = i;
+        }
+        if (std::isnan(m_ji[j][i])) {
+          std::cout << "NAN!\n";
+          exit(1);
+        }
+        if (m_ji[j][i] == 1.0) {
+          check++;
+        }
+      }
+      // frufru
+      std::cout << "[";
+      for(int i = 0; i < N; i++) // location
+      {        
+        if (i == p_max) {
+          std::cout << m_ji[j][i] << "*\t\t";
+        } else {
+          std::cout << m_ji[j][i] << "\t\t";
+        }
+      }
+      std::cout << " = " << validate << " : " << p_max << "]\n";
+    }  
+
+
+    /// by loc    
+    /*for(int j = 0; j < N; j++)
+    {
+      for(int i = 0; i < N; i++)
+      {
+        b_ji[j][i] = b_ji[j][i]*m_ji[j][i];
+      }
+    }
+    std::cout << "...... BIJ\n";
+    for(int j = 0; j < N; j++)
+    {
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        std::cout << b_ji[j][i] << "\t";
+      }  
+      std::cout << "]\n";    
+    }
+    std::cout << "::::::::::::::::::::::::::::::::::::::::::::::::: BY Locs\n";
+    for(int i = 0; i < N; i++) // location
+    {
+      z[i] = 0.0;
+      validate = 0.0;
+      max = 0.0;
+      for(int k = 0; k < N; k++) // uavs
+      {
+        z[i] += std::exp(-(b_ji[k][i]/temp)); // --> sem capacidade
+      }
+      for(int j = 0; j < N; j++) // uavs
+      {
+        m_ij[j][i] = std::exp(-(b_ji[j][i]/temp)) / z[i]; // --> sem capacidade
+        validate += m_ij[j][i];
+        if (m_ij[j][i] > max) {
+          max = m_ij[j][i];
+          p_max = j;
+        }
+        if (std::isnan(m_ij[j][i])) {
+          std::cout << "NAN m_ij!\n";
+          exit(1);
+        }
+        if (m_ij[j][i] == 1.0) {
+          check++;
+        }
+      }
+      // frufru
+      std::cout << "[";
+      for(int j = 0; j < N; j++) // uavs
+      {
+        if (j == p_max) {
+          std::cout << m_ij[j][i] << "*\t\t";
+        } else {
+          std::cout << m_ij[j][i] << "\t\t";
+        }
+      }
+      std::cout << " = " << validate << " : " << p_max << "]\n";
+    }    */
+
+    // test
+    std::cout << "...... OI\n";
+    std::cout << "[";
+    for(int i = 0; i < N; i++)
+    {
+      std::cout << o[i] << "\t";
+    }  
+    std::cout << "]\n";    
+    std::cout << "...... BIJ\n";
+    for(int j = 0; j < N; j++)
+    {
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        std::cout << b_ji[j][i] << "\t";
+      }  
+      std::cout << "]\n";    
+    }
+    
+
+    if (check == N) {
+      std::cout << "--> saindo\n";
+      break;
+    }
+      
+    temp *= 0.9;
+  }
+
+  std::ostringstream os;
+  os.str("");
+  os << path << "/F_mij.txt";
+  PrintMatrix (m_ji, os.str());
+
+  return m_ji;
+}
+
 std::vector<std::vector<long double> > positioning (std::vector<std::vector<long double> > b_ij, int N, std::string path) {
   // normalize bij
   double max = 0;
@@ -109,24 +301,8 @@ std::vector<std::vector<long double> > positioning (std::vector<std::vector<long
           // calculate \lamb_{ij}
           // NS_LOG_DEBUG ("MIJ [" << i << "," << j << "] : " << m_ij[i][j]);
           lamb_ij[i][j] = m_ij[i][j] * b_ij[i][j];
-          if (isnan(lamb_ij[i][j])) {
-            os.str("");
-            os << path << "/B_q_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (q_ij, os.str());
-            os.str("");
-            os << path << "/B_o_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (o_ij, os.str());
-            os.str("");
-            os << path << "/B_lamb_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (lamb_ij, os.str());
-            os.str("");
-            os << path << "/B_m_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (m_ij, os.str());
-            std::cout << "Lab is nan: ["<<i<<","<<j<<"] " << m_ij[i][j] << " * " << b_ij[i][j] << " = " << lamb_ij[i][j] << "   " << itB;
-            exit(0);
-          }
           // calculate Q_{ij}
-          q_ij[i][j] = lamb_ij[i][j] * b_ij[i][j] - gamma * o_ij[i][j];
+          q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];
           if (isnan(q_ij[i][j])) {
             os.str("");
             os << path << "/B_q_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
@@ -150,22 +326,6 @@ std::vector<std::vector<long double> > positioning (std::vector<std::vector<long
             converge_C = false;
           }
           m_ij[i][j] = new_mij;
-          if (isnan(m_ij[i][j])) {
-            os.str("");
-            os << path << "/B_q_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (q_ij, os.str());
-            os.str("");
-            os << path << "/B_o_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (o_ij, os.str());
-            os.str("");
-            os << path << "/B_lamb_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (lamb_ij, os.str());
-            os.str("");
-            os << path << "/B_m_ij_" << std::setfill ('0') << std::setw (4) << itA << "_" << itB << ".txt";
-            PrintMatrix (m_ij, os.str());
-            std::cout << "mij is nan  " << itB;
-            exit(0);
-          }
         }
       }
 
