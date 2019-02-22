@@ -30,7 +30,8 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
   std::vector<std::vector<long double> > b_ji;
   std::vector<std::vector<long double> > m_ji;
   std::vector<long double> z;
-  std::vector<int> o; // ocupada
+  std::vector<long double> o_loc; // ocupada
+  std::vector<long double> o_uav; // ocupada
 
   for(int j = 0; j < N; j++) // uav
   {
@@ -42,17 +43,19 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
       b_ji[j].push_back(c_ji[j][i]);
     }
     z.push_back(0.0);
-    o.push_back(0);
-  }    
+    o_loc.push_back(0.1);
+    o_uav.push_back(0.1);
+  }
 
-  long double temp = 1e-1, t_min=1e-6, validate, alpha, max, cost; // alpha punicao de capacidade
+  long double temp = 0.3, t_min=1e-6, validate, alpha, max, cost; // alpha punicao de capacidade
   int check, p_max;
 
   std::cout << std::fixed << std::setprecision(10) << std::setw(10) << std::setfill(' ');
   std::cout << "============================> STARTING\n";
-  int odd_even = 1;
+  int odd_even = 0;
+  alpha = 1.5; // aumenta 50%
   while (temp > t_min) {
-    alpha = 1-temp;
+    // alpha = 1-temp;
     std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << " ODDEVEN = " << odd_even << std::endl;    
     // // normalizando matriz bji completa, deixando valores 0-1
     // max = 0;
@@ -105,6 +108,14 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         std::cout << "]\n";    
       }
 
+      std::cout << "...... O_LOC\n";
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        std::cout << o_loc[i] << "\t\t";
+      }  
+      std::cout << "]\n";   
+
       std::cout << "...... MJI -- por linha\n";
       check = 0;   
       cost = 0.0;
@@ -113,18 +124,22 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         z[j] = 0.0;
         for(int k = 0; k < N; k++) // locations
         {        
-          z[j] += std::exp(-((b_ji[j][k]+alpha*((o[k] == j || o[k] == 0.0)?0.0:1.0))/temp)); 
+          z[j] += std::exp(-((b_ji[j][k]+o_loc[k])/temp)); 
         }
 
         max = 0.0;
         validate = 0.0;
-        for(int i = 0; i < N; i++) // location
+        for(int i = 0; i < N; i++) // locations
         {
-          m_ji[j][i] = std::exp(-((b_ji[j][i]+alpha*((o[i] == j || o[i] == 0.0)?0.0:1.0))/temp)) / z[j];
+          m_ji[j][i] = std::exp(-((b_ji[j][i]+o_loc[i])/temp)) / z[j];
           validate += m_ji[j][i];
           if (m_ji[j][i] > max) {
             max = m_ji[j][i];
             p_max = i;
+          }
+          if (m_ji[j][i] > 1.0) {
+            std::cout << "Maior que 1! [" << m_ji[j][i] << "]\n b_ji = " << b_ji[j][i] << " o_loc: " << o_loc[i] << " temp: " << temp << " z[j]: " << z[j] << " insideexp: " << -((b_ji[j][i]+o_loc[i])/temp) << " exp: " << std::exp(-((b_ji[j][i]+o_loc[i])/temp)) << std::endl;
+            exit(1);
           }
           if (std::isnan(m_ji[j][i])) {
             std::cout << "NAN!\n";
@@ -136,7 +151,7 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
             cost += m_ji[j][i] * c_ji[j][i];
           }
         }
-        o[p_max] = j; // uav 
+        o_loc[p_max] *= alpha; // a localização o qual o UAV j selecionou recebe uma punicao para que outros UAV prefiram outras locs
         // frufru
         std::cout << "[";
         for(int i = 0; i < N; i++) // location
@@ -182,26 +197,38 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
         std::cout << "]\n";    
       }
 
+      std::cout << "...... O_UAV\n";
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        std::cout << o_uav[i] << "\t\t";
+      }  
+      std::cout << "]\n"; 
+
       std::cout << "...... MJI invertida ---> por coluna!\n";   
       check = 0; 
       cost = 0.0;
       for(int i = 0; i < N; i++) // location
       {        
         z[i] = 0.0;
-        for(int k = 0; k < N; k++) // locations
+        for(int k = 0; k < N; k++) // uavs
         {        
-          z[i] += std::exp(-((b_ji[i][k]+alpha*((o[k] == i || o[k] == 0.0)?0.0:1.0))/temp)); 
+          z[i] += std::exp(-((b_ji[i][k]+o_uav[k])/temp)); 
         }
 
         max = 0.0;
         validate = 0.0;
         for(int j = 0; j < N; j++) // uavs
         {
-          m_ji[j][i] = std::exp(-((b_ji[j][i]+alpha*((o[j] == i || o[j] == 0.0)?0.0:1.0))/temp)) / z[i];
+          m_ji[j][i] = std::exp(-((b_ji[j][i]+o_uav[j])/temp)) / z[i];
           validate += m_ji[j][i];
           if (m_ji[j][i] > max) {
             max = m_ji[j][i];
             p_max = j;
+          }
+          if (m_ji[j][i] > 1.0) {
+            std::cout << "Maior que 1! [" << m_ji[j][i] << "]\n b_ji = " << b_ji[j][i] << " o_uav: " << o_uav[j] << " temp: " << temp << " z[i]: " << z[i] << " insideexp: " << ((b_ji[j][i]+o_uav[j])/temp) << " exp: " << std::exp(-((b_ji[j][i]+o_uav[j])/temp)) << std::endl;
+            exit(1);
           }
           if (std::isnan(m_ji[j][i])) {
             std::cout << "NAN!\n";
@@ -213,7 +240,8 @@ std::vector<std::vector<long double> > da_positioning (std::vector<std::vector<l
             cost += m_ji[j][i] * c_ji[j][i];
           }
         }
-        o[p_max] = i;
+        o_uav[p_max] *= alpha; // o uav a qual a localização escolheu recebe punicao para fazer com que outras localizações deem preferencia para outros UAVs
+
         // frufru
         std::cout << "[";
         for(int j = 0; j < N; j++) // uavs
