@@ -32,6 +32,11 @@ int main () {
 
     std::vector<int> proposed (da_positioning(c_ji, N, name));
 
+    std::ofstream file;
+    std::ostringstream path;
+    path << name << "_out.txt";
+    file.open(path.str().c_str(), std::ofstream::out);
+
     long double s_exaustive = 0.0;
     long double s_proposed = 0.0;
     long double s_random = 0.0;
@@ -41,13 +46,10 @@ int main () {
         s_random += c_ji[i][random[i]];
         s_sequential += c_ji[i][sequential[i]];
         s_proposed += c_ji[i][proposed[i]];
+        file << proposed[i] << " ";
     }
-
-    std::ofstream file;
-    std::ostringstream path;
-    path << name << "_out.txt";
-    file.open(path.str().c_str(), std::ofstream::out);
-    file << "EX:\t\t" << s_exaustive
+    
+    file << "\nEX:\t\t" << s_exaustive
          << "\nPR:\t\t" << s_proposed
          << "\nRD:\t\t" << s_random
          << "\nSQ:\t\t" << s_sequential

@@ -40,16 +40,16 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
     b_ji.push_back(std::vector<long double>());
     for(int i = 0; i < N; i++) // location
     {
-      m_ji[j].push_back(0.99);// para nao dar conflito com a primeira atualizaçao de bij
+      m_ji[j].push_back(0.01);// para nao dar conflito com a primeira atualizaçao de bij
       b_ji[j].push_back(c_ji[j][i]);
     }
-    o_loc.push_back(0.1);
-    o_uav.push_back(0.1);
+    o_loc.push_back(1e-5);
+    o_uav.push_back(1e-5);
     proposed.push_back(-1);
     o_conflict.push_back(0); // para saber se ja teve conflito 
   }
 
-  long double temp = 0.3, t_min=1e-6, validate, alpha, max, cost, z; // alpha punicao de capacidade
+  long double temp = 0.3, t_min=9e-2, validate, alpha, max, cost, z; // alpha punicao de capacidade
   int check, p_max;
 
   std::cout << std::fixed << std::setprecision(10) << std::setw(10) << std::setfill(' ');
@@ -58,33 +58,37 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
   alpha = 1.1; // aumenta 10%
   unsigned uav, loc;
 
-  std::ofstream file;
-  std::ostringstream n_path;
-  n_path << path << "_b_graphic.txt";
-  file.open(n_path.str().c_str(), std::ofstream::out);
-  file << N << std::endl;
+  // std::ofstream file;
+  // std::ostringstream n_path;
+  // n_path << path << "_b_graphic.txt";
+  // file.open(n_path.str().c_str(), std::ofstream::out);
+  // file << N << std::endl;
   while (temp > t_min) {
     // alpha = 1-temp;
     std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << " ODDEVEN = " << odd_even << std::endl;   
 
     if (odd_even%2==0) {      
       // normalizando bji por linhas
+      std::cout << "(1-MJI)-----\n";
       for (uav = 0; uav < N; ++uav) // UAV
       {
+        std::cout << "[";
         max = 0.0;
         for (loc = 0; loc < N; ++loc) // LOC
         {
           b_ji[uav][loc] = b_ji[uav][loc]*(1.0-m_ji[uav][loc]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
+          std::cout << (1.0-m_ji[uav][loc]) << "\t\t";
           if (b_ji[uav][loc] > max) {
             max = b_ji[uav][loc];
           }
         }
+        std::cout << "]\n";
         for (loc = 0; loc < N; ++loc) // LOC
         {
           b_ji[uav][loc] /= max;
-          file << b_ji[uav][loc] << ",";
+          // file << b_ji[uav][loc] << ",";
         }
-        // o_conflict[uav] = 0; // reiniciando conflito
+        o_conflict[uav] = 0; // reiniciando conflito
         o_loc[uav] = 0.1;
       }
 
@@ -123,17 +127,26 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
       cost = 0.0;
       for(uav = 0; uav < N; uav++) // uavs
       {        
-        z = 0.0;
+        std::cout << "Z=";
+        z = 0.0;        
         for(loc = 0; loc < N; loc++) // locations
         {        
-          z += std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)); 
-        }
+          z += std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp));
+        } 
+        std::cout << z << "\texp(0) = " << std::exp(0);
 
         max = 0.0;
         validate = 0.0;
+        std::cout << "\n(";
+        for(loc = 0; loc < N; loc++) // locations
+        {
+          std::cout << ((b_ji[uav][loc]+o_loc[loc])/temp) << "\t\t";
+        }
+        std::cout << ")\n(";
         for(loc = 0; loc < N; loc++) // locations
         {
           // m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)) / z; // utilizar os dois está aplicando punição e aproximando um já selecionado com um outro de valor maior e proximo
+          std::cout << std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) << "\t\t";
           m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) / z;
           validate += m_ji[uav][loc];
           if (m_ji[uav][loc] > max) {
@@ -151,8 +164,14 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
             proposed[uav] = loc; // proposed é UAV/loc representa para qual loc o UAv irá
           }
         }
-        o_loc[p_max] *= alpha; // a localização o qual o UAV selecionou recebe uma punicao para que outros UAV prefiram outras locs
-        // o_conflict[p_max]++;
+        std::cout << ")\n";
+        if (o_conflict[p_max] > 0) // somente punir quando mais de 1 uav selecionar a mesma localizacao
+          o_loc[p_max] *= alpha; // a localização o qual o UAV selecionou recebe uma punicao para que outros UAV prefiram outras locs
+        else if (o_conflict[p_max] == 1) {
+          o_conflict[p_max] = 0.1;
+        }
+        o_conflict[p_max]++;
+        proposed[uav] = p_max;
         // frufru
         std::cout << "[";
         for(loc = 0; loc < N; loc++) // location
@@ -190,14 +209,25 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         for (uav = 0; uav < N; ++uav) // UAV
         {
           b_ji[uav][loc] /= max;
-          file << b_ji[uav][loc] << " ";
+          // file << b_ji[uav]/[loc] << " ";
         }
-        // o_conflict[loc] = 0; // reiniciando conflito
+        o_conflict[loc] = 0; // reiniciando conflito
         o_uav[loc] = 0.1;
       }
 
       // imprimindo valores
       {
+        std::cout << "...... (1-MJI)\n";
+        for(uav = 0; uav < N; uav++)
+        {
+          std::cout << "[";
+          for(loc = 0; loc< N; loc++)
+          {
+            std::cout << (1.0-m_ji[uav][loc]) << "\t\t";
+          }  
+          std::cout << "]\n";    
+        } 
+
         std::cout << "...... BJI - por coluna\n";
         for(uav = 0; uav < N; uav++)
         {
@@ -231,17 +261,27 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
       cost = 0.0;
       for(loc = 0; loc < N; loc++) // locations
       {        
+        std::cout << "Z=";
         z = 0.0;
         for(uav = 0; uav < N; uav++) // uavs
         {        
           z += std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)); 
         }
+        std::cout << z << "\t";
 
         max = 0.0;
         validate = 0.0;
+        // frufru
+        std::cout << "\n(";
+        for(uav = 0; uav < N; uav++) // uavs
+        {
+          std::cout << ((b_ji[uav][loc]+o_uav[uav])/temp) << "\t\t";
+        }
+        std::cout << ")\n(";
         for(uav = 0; uav < N; uav++) // uavs
         {
           m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)) / z;
+          std::cout << std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)) << "\t\t";
           validate += m_ji[uav][loc];
           if (m_ji[uav][loc] > max) {
             max = m_ji[uav][loc];
@@ -249,21 +289,39 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           }
           if (std::isnan(m_ji[uav][loc])) {
             std::cout << "NAN!\n";
-            file.close();
+            // file.close();
             exit(1);
           }
           if (m_ji[uav][loc] == 1.0) {
             std::cout << "Fixed in 1.0! [" << loc << "]\n";
             check++;
             cost += m_ji[uav][loc] * c_ji[uav][loc];
-            proposed[uav] = loc; // proposed é UAV/loc representa para qual loc o UAv irá
+            proposed[loc] = uav; // proposed é UAV/loc representa para qual loc o UAv irá
           }
         }
-        o_uav[p_max] *= alpha; // a localização o qual o UAV selecionou recebe uma punicao para que outros UAV prefiram outras locs
-        // o_conflict[p_max]++;    
+        std::cout << ")\n";
+        if (o_conflict[p_max] > 0) // somente punir quando mais de uma loc selecionar o mesmo uav
+          o_uav[p_max] *= alpha; // o uav que a localizacao teve  maior probabilidade
+        else if (o_conflict[p_max] == 1) {
+          o_conflict[p_max] = 0.1;
+        }
+        o_conflict[p_max]++;
+        proposed[loc] = p_max;
+        // frufru
+        std::cout << "[";
+        for(uav = 0; uav < N; uav++) // uavs
+        {        
+          if (uav == p_max) {
+            std::cout << m_ji[uav][loc] << "*\t\t";
+          } else {
+            std::cout << m_ji[uav][loc] << "\t\t";
+          }
+        }
+        std::cout << " = " << validate << " : " << p_max << "]\n";
       }
 
-      // frufru      
+      // frufru   
+      std::cout << "--- mji uav/loc\n";   
       for(uav = 0; uav < N; uav++) // uavs
       {      
         std::cout << "[";
@@ -272,7 +330,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           std::cout << m_ji[uav][loc] << "\t\t";
         }
         std::cout << "]\n";
-      }      
+      } 
 
       // for (loc = 0; loc < N; ++loc) // LOC
       // {
@@ -292,9 +350,9 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
       
     temp *= 0.9;
     odd_even++;
-    file << std::endl;
+    // file << std::endl;
   }
-  file.close();
+  // file.close();
 
   std::ostringstream os;
   os.str("");
