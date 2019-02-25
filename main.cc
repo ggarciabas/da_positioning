@@ -46,14 +46,25 @@ int main () {
         s_random += c_ji[i][random[i]];
         s_sequential += c_ji[i][sequential[i]];
         s_proposed += c_ji[i][proposed[i]];
-        file << proposed[i] << " ";
     }
     
-    file << "\nEX:\t\t" << s_exaustive
-         << "\nPR:\t\t" << s_proposed
-         << "\nRD:\t\t" << s_random
-         << "\nSQ:\t\t" << s_sequential
-         << std::endl;
+    file << "EX:\t\t" << s_exaustive << "\t[\t";
+    for (int i = 0; i<N; ++i) {
+        file << exhaustive[i] << "\t";
+    }
+    file << "]\nPR:\t\t" << s_proposed << "\t[\t";
+    for (int i = 0; i<N; ++i) {
+        file << proposed[i] << "\t";
+    }
+    file << "]\nRD:\t\t" << s_random << "\t[\t";
+    for (int i = 0; i<N; ++i) {
+        file << random[i] << "\t";
+    }
+    file << "]\nSQ:\t\t" << s_sequential<< "\t[\t";
+    for (int i = 0; i<N; ++i) {
+        file << sequential[i] << "\t";
+    }
+    file << "]\n";
     file.close();
 
     return 0;

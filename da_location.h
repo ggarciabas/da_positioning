@@ -82,7 +82,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         for (loc = 0; loc < N; ++loc) // LOC
         {
           if (m_ji[uav][loc] > max) {
-            max = b_ji[uav][loc];
+            max = m_ji[uav][loc];
           }
         }
         for (loc = 0; loc < N; ++loc) // LOC
@@ -142,7 +142,6 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
 
       std::cout << "...... MJI -- por linha\n";
       check = 0;   
-      cost = 0.0;
       for(uav = 0; uav < N; uav++) // uavs
       {        
         // std::cout << "Z=";
@@ -173,12 +172,11 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           }
           if (std::isnan(m_ji[uav][loc])) {
             std::cout << "NAN!\n";
-            exit(1);
+            goto out;
           }
           if (m_ji[uav][loc] == 1.0) {
             std::cout << "Fixed in 1.0! [" << uav << "]\n";
             check++;
-            cost += m_ji[uav][loc] * c_ji[uav][loc];
             proposed_UAV[uav] = loc; // proposed é UAV/loc representa para qual loc o UAv irá
           }
         }
@@ -215,13 +213,13 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         max = 0.0;
         for (uav = 0; uav < N; ++uav) // UAV
         {
-          if (b_ji[uav][loc] > max) {
-            max = b_ji[uav][loc];
+          if (m_ji[uav][loc] > max) {
+            max = m_ji[uav][loc];
           }
         }
         for (uav = 0; uav < N; ++uav) // UAV
         {
-          b_ji[uav][loc] /= max;
+          m_ji[uav][loc] /= max;
         }
       }
       // normalizando bji por coluna
@@ -286,7 +284,6 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
 
       std::cout << "...... MJI -- por coluna\n";
       check = 0;   
-      cost = 0.0;
       for(loc = 0; loc < N; loc++) // locations
       {        
         // std::cout << "Z=";
@@ -323,8 +320,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
           if (m_ji[uav][loc] == 1.0) {
             std::cout << "Fixed in 1.0! [" << loc << "]\n";
             check++;
-            cost += m_ji[uav][loc] * c_ji[uav][loc];
-            proposed_LOC[loc] = uav; // proposed é UAV/loc representa para qual loc o UAv irá
+            proposed_LOC[p_max] = loc; // proposed é UAV/loc representa para qual loc o UAv irá
           }
         }
         // std::cout << ")\n";
@@ -358,6 +354,20 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
 
     }  
 
+    // frufru
+    std::cout << "LOC [";
+    for(uav = 0; uav < N; uav++) // uavs
+    {
+      std::cout << proposed_LOC[uav] << "\t";
+    }
+    std::cout << "]\n";
+    std::cout << "UAV [";
+    for(uav = 0; uav < N; uav++) // uavs
+    {
+      std::cout << proposed_UAV[uav] << "\t";
+    }
+    std::cout << "]\n";
+
     cost = 0.0;
     equal = true;
     for(uav = 0; uav < N; uav++) // uavs
@@ -385,6 +395,37 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
     // file << std::endl;
   }
   out:
+  std::cout << "OUT --->cost = " << cost << std::endl;
+  if (cost == -1) {
+    std::cout << "-1 cost !\n";
+    // frufru
+    std::cout << "LOC [";
+    for(uav = 0; uav < N; uav++) // uavs
+    {
+      std::cout << proposed_LOC[uav] << "\t";
+    }
+    std::cout << "]\n";
+    std::cout << "UAV [";
+    for(uav = 0; uav < N; uav++) // uavs
+    {
+      std::cout << proposed_UAV[uav] << "\t";
+    }
+    std::cout << "]\n";
+    long double cost_LOC = 0.0;
+    long double cost_UAV = 0.0;
+    for(uav = 0; uav < N; uav++) // uavs
+    {
+      cost_LOC += c_ji[uav][proposed_LOC[uav]];
+      cost_UAV += c_ji[uav][proposed_UAV[uav]];
+    }
+    std::cout << "CLOC="<< cost_LOC << "\tCUAV=" << cost_UAV << std::endl;
+    cost = cost_UAV;
+    proposed_FINAL = proposed_UAV;
+    if (cost_LOC < cost_UAV) {
+      cost = cost_LOC;
+      proposed_FINAL = proposed_LOC;
+    }
+  }
 
   std::ostringstream os;
   os.str("");
