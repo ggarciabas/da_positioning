@@ -148,7 +148,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         z = 0.0;        
         for(loc = 0; loc < N; loc++) // locations
         {        
-          z += std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp));
+          z += std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp));
         } 
         // std::cout << z << "\texp(0) = " << std::exp(0);
 
@@ -162,7 +162,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         // std::cout << ")\n(";
         for(loc = 0; loc < N; loc++) // locations
         {
-          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc]+o_uav[uav])/temp)) / z;
+          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) / z;
           // std::cout << std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) << "\t\t\t\t";
           // m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) / z;
           validate += m_ji[uav][loc];
@@ -290,7 +290,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         z = 0.0;
         for(uav = 0; uav < N; uav++) // uavs
         {        
-          z += std::exp(-((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp)); 
+          z += std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)); 
         }
         // std::cout << z << "\t";
 
@@ -305,7 +305,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
         // std::cout << ")\n(";
         for(uav = 0; uav < N; uav++) // uavs
         {
-          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[uav]+o_loc[loc])/temp)) / z;
+          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)) / z;
           // std::cout << std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)) << "\t\t\t\t";
           validate += m_ji[uav][loc];
           if (m_ji[uav][loc] > max) {
