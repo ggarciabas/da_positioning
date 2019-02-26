@@ -26,7 +26,7 @@ void PrintMatrix (std::vector<std::vector<long double> > matrix, std::string nam
   file.close();
 }
 
-std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, int N, std::string path) {
+std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, int N) { //, std::string path) {
   std::vector<std::vector<long double> > b_ji;
   std::vector<std::vector<long double> > m_ji;
   std::vector<long double> o_loc; // ocupada
@@ -56,7 +56,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
   long double temp = 0.3, t_min=9e-5, validate, alpha, max, cost, z, cost_FINAL = 5.0; // alpha punicao de capacidade
   int check, p_max;
 
-  std::cout << std::setprecision(10) << std::setw(10) << std::setfill(' ') << std::fixed;//scientific
+  // std::cout << std::setprecision(10) << std::setw(10) << std::setfill(' ') << std::fixed;//scientific
   std::cout << "============================> STARTING\n";
   int odd_even = 0;
   alpha = 1.5; // aumenta 20%
@@ -427,10 +427,10 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
     }
   }
 
-  std::ostringstream os;
-  os.str("");
-  os << path << "_F_mij.txt";
-  PrintMatrix (m_ji, os.str());
+  // std::ostringstream os;
+  // os.str("");
+  // os << path << "_F_mij.txt";
+  // PrintMatrix (m_ji, os.str());
 
   return proposed_FINAL;
 }
@@ -659,7 +659,7 @@ void permute (std::vector<int> uav_loc, int start, int end, int N) {
   }
 }
 
-void exhaustive (std::vector<std::vector<long double> > b_ij, int N) {
+std::vector<int> exhaustive (std::vector<std::vector<long double> > b_ij, int N) {
   for (int i = 0; i<N; ++i) {
     g_b_ij.push_back(std::vector<long double>());
     for(int j = 0; j < N; j++)
@@ -676,11 +676,12 @@ void exhaustive (std::vector<std::vector<long double> > b_ij, int N) {
 
   permute(uav_loc, 0, N-1, N);
 
-  std::cout << "Best: ";
-  double t = 0;
-  for (int i = 0; i < N; ++i) {
-    std::cout << min_conf[i] << "[" << b_ij[i][min_conf[i]] << "] ";
-    t += b_ij[i][min_conf[i]];
-  }  
-  std::cout << "---> " << t << std::endl;
+  // std::cout << "Best: ";
+  // double t = 0;
+  // for (int i = 0; i < N; ++i) {
+  //   std::cout << min_conf[i] << "[" << b_ij[i][min_conf[i]] << "] ";
+  //   t += b_ij[i][min_conf[i]];
+  // }  
+  // std::cout << "---> " << t << std::endl;
+  return min_conf;
 }
