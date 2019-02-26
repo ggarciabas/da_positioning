@@ -74,29 +74,29 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
 
     if (odd_even%2==0) {      
       // normalizando bji por linhas
-      std::cout << "(1-MJI)-----\n";
-       // normalizando MIJ, para suavizar a punicao de bji
-      for (uav = 0; uav < N; ++uav) // UAV
-      {
-        max = 0.0;
-        for (loc = 0; loc < N; ++loc) // LOC
-        {
-          if (m_ji[uav][loc] > max) {
-            max = m_ji[uav][loc];
-          }
-        }
-        for (loc = 0; loc < N; ++loc) // LOC
-        {
-          m_ji[uav][loc] /= max;
-        }
-      }
+      // std::cout << "(1-MJI)-----\n";
+      // normalizando MIJ, para suavizar a punicao de bji
+      // for (uav = 0; uav < N; ++uav) // UAV
+      // {
+      //   max = 0.0;
+      //   for (loc = 0; loc < N; ++loc) // LOC
+      //   {
+      //     if (m_ji[uav][loc] > max) {
+      //       max = m_ji[uav][loc];
+      //     }
+      //   }
+      //   for (loc = 0; loc < N; ++loc) // LOC
+      //   {
+      //     m_ji[uav][loc] /= max;
+      //   }
+      // }
       for (uav = 0; uav < N; ++uav) // UAV
       {
         std::cout << "[";
         max = 0.0;
         for (loc = 0; loc < N; ++loc) // LOC
         {
-          b_ji[uav][loc] = b_ji[uav][loc]*m_ji[uav][loc]; // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
+          b_ji[uav][loc] = b_ji[uav][loc]*(1-m_ji[uav][loc]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
           std::cout << m_ji[uav][loc] << "\t\t\t\t";
           // if (b_ji[uav][loc] > max) {
           //   max = b_ji[uav][loc];
@@ -208,27 +208,27 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
 
     } else {
       // normalizando mij para suavizar a punicao de bji
-      for (loc = 0; loc < N; ++loc) // LOC
-      {
-        max = 0.0;
-        for (uav = 0; uav < N; ++uav) // UAV
-        {
-          if (m_ji[uav][loc] > max) {
-            max = m_ji[uav][loc];
-          }
-        }
-        for (uav = 0; uav < N; ++uav) // UAV
-        {
-          m_ji[uav][loc] /= max;
-        }
-      }
+      // for (loc = 0; loc < N; ++loc) // LOC
+      // {
+      //   max = 0.0;
+      //   for (uav = 0; uav < N; ++uav) // UAV
+      //   {
+      //     if (m_ji[uav][loc] > max) {
+      //       max = m_ji[uav][loc];
+      //     }
+      //   }
+      //   for (uav = 0; uav < N; ++uav) // UAV
+      //   {
+      //     m_ji[uav][loc] /= max;
+      //   }
+      // }
       // normalizando bji por coluna
       for (loc = 0; loc < N; ++loc) // LOC
       {
         max = 0.0;
         for (uav = 0; uav < N; ++uav) // UAV
         {
-          b_ji[uav][loc] = b_ji[uav][loc]*m_ji[uav][loc]; // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
+          b_ji[uav][loc] = b_ji[uav][loc]*(1-m_ji[uav][loc]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
           // if (b_ji[uav][loc] > max) {
           //   max = b_ji[uav][loc];
           // }
