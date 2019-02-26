@@ -59,7 +59,7 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
   // std::cout << std::setprecision(10) << std::setw(10) << std::setfill(' ') << std::fixed;//scientific
   std::cout << "============================> STARTING\n";
   int odd_even = 0;
-  alpha = 1.5; // aumenta 20%
+  alpha = 1.05; // aumenta 20%
   unsigned uav, loc;
   bool equal;
 
@@ -626,9 +626,9 @@ std::vector<std::vector<long double> > positioning (std::vector<std::vector<long
 
 std::vector<int> min_conf;
 std::vector<std::vector<long double> > g_b_ij;
-double glob_val = 0;
+double glob_val = 1000.0;
 
-void permute (std::vector<int> uav_loc, int start, int end, int N) {
+void permute_uav (std::vector<int> uav_loc, int start, int end, int N) {
   std::cout << "[" << start << "," << end << "] ";
   if (start == end) {
     double val = 0.0;
@@ -650,7 +650,7 @@ void permute (std::vector<int> uav_loc, int start, int end, int N) {
       int aux = uav_loc[i];
       uav_loc[i] = uav_loc[start];
       uav_loc[start] = aux;
-      permute(uav_loc, start+1, end, N);
+      permute_uav(uav_loc, start+1, end, N);
       // backtrack
       aux = uav_loc[i];
       uav_loc[i] = uav_loc[start];
@@ -659,7 +659,40 @@ void permute (std::vector<int> uav_loc, int start, int end, int N) {
   }
 }
 
-std::vector<int> exhaustive (std::vector<std::vector<long double> > b_ij, int N) {
+void permute_loc (std::vector<int> uav_loc, int start, int end, int N) {
+  std::cout << "[" << start << "," << end << "] ";
+  if (start == end) {
+    double val = 0.0;
+    for (int i = 0; i<N; ++i) {
+      std::cout << uav_loc[i] << " ";
+      // val = val + g_b_ij[uav_loc[i]][i];
+      val = val + g_b_ij[uav_loc[i]][i]; // variando a coluna e procurando o menor
+    }
+    std::cout << std::endl;
+    if (val < glob_val) {
+      std::cout << "New value: " << val << std::endl;
+      glob_val = val;
+      for (int i = 0; i<N; ++i) { // copiando
+        min_conf[uav_loc[i]] = i; // salvando uav/loc para nao ser necessario converter!
+      }
+    }
+  } else {
+    for (int i = start; i <= end; ++i) {
+      int aux = uav_loc[i];
+      uav_loc[i] = uav_loc[start];
+      uav_loc[start] = aux;
+      permute_loc (uav_loc, start+1, end, N);
+      // backtrack
+      aux = uav_loc[i];
+      uav_loc[i] = uav_loc[start];
+      uav_loc[start] = aux;
+    }
+  }
+}
+
+std::vector<int> exhaustive (std::vector<std::vector<long double> > b_ij, int N, int op) {
+  glob_val = 1000.0;
+  min_conf.clear();
   for (int i = 0; i<N; ++i) {
     g_b_ij.push_back(std::vector<long double>());
     for(int j = 0; j < N; j++)
@@ -674,7 +707,14 @@ std::vector<int> exhaustive (std::vector<std::vector<long double> > b_ij, int N)
     min_conf.push_back(i);
   }  
 
-  permute(uav_loc, 0, N-1, N);
+  switch (op) {
+    case 1: // uav
+      permute_uav(uav_loc, 0, N-1, N);
+      break;
+    case 2: // loc
+      permute_loc(uav_loc, 0, N-1, N);
+      break;
+  }
 
   // std::cout << "Best: ";
   // double t = 0;
@@ -683,5 +723,10 @@ std::vector<int> exhaustive (std::vector<std::vector<long double> > b_ij, int N)
   //   t += b_ij[i][min_conf[i]];
   // }  
   // std::cout << "---> " << t << std::endl;
+
+  for (int i = 0; i<N; ++i) {
+    g_b_ij[i].clear();
+  }
+  g_b_ij.clear();
   return min_conf;
 }

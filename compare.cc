@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <random>
 #include "da_location.h"
 
 int main () {
@@ -15,7 +17,8 @@ int main () {
         }
     }
 
-    long double s_exaustive = 0.0;
+    long double s_exaustive_uav = 0.0;
+    long double s_exaustive_loc = 0.0;
     long double s_proposed = 0.0;
     long double s_random = 0.0;
     std::ofstream file;
@@ -23,23 +26,30 @@ int main () {
     path << name << "_out.txt";
     file.open(path.str().c_str(), std::ofstream::out);
 
-    std::vector<int> sol_exh (exhaustive (c_ji, N));
+    std::vector<int> sol_exh_uav (exhaustive (c_ji, N, 1));
+    // std::vector<int> sol_exh_loc (exhaustive (c_ji, N, 2));
     std::vector<int> sol_pro (da_positioning(c_ji, N));
-    std::vector<int> sol_rnd (N,0);
+    std::vector<int> sol_rnd;
 
-    srand(time(NULL));
     for (int i = 0; i<N; ++i) {
-     sol_rnd[i] = rand() % N; 
-     s_random += c_ji[i][sol_rnd[i]];
+     sol_rnd.push_back(i);
     }    
+    auto rng = std::default_random_engine {};
+    std::shuffle(std::begin(sol_rnd), std::end(sol_rnd), rng);
 
     file << N << std::endl;
     for (int i = 0; i<N; ++i) {
-        file << sol_exh[i] << "\t";
-        s_exaustive += c_ji[i][sol_exh[i]];
+        file << sol_exh_uav[i] << "\t";
+        s_exaustive_uav += c_ji[i][sol_exh_uav[i]];
     }
     file << std::endl;
-    file << s_exaustive << std::endl;
+    file << s_exaustive_uav << std::endl;
+    // for (int i = 0; i<N; ++i) {
+    //     file << sol_exh_loc[i] << "\t";
+    //     s_exaustive_loc += c_ji[i][sol_exh_loc[i]];
+    // }
+    // file << std::endl;
+    // file << s_exaustive_loc << std::endl;
     for (int i = 0; i<N; ++i) {
         file << sol_pro[i] << "\t";
         s_proposed += c_ji[i][sol_pro[i]];
@@ -48,6 +58,7 @@ int main () {
     file << s_proposed << std::endl;
     for (int i = 0; i<N; ++i) {
         file << sol_rnd[i] << "\t";
+        s_random += c_ji[i][sol_rnd[i]];
     }
     file << std::endl;
     file << s_random << std::endl;
