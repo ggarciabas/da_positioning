@@ -27,9 +27,17 @@ void PrintMatrix (std::vector<std::vector<long double> > matrix, std::string nam
 }
 
 std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, int N) { //, std::string path) {
+  long double temp = 0.3, t_min=9e-5, alpha, max, cost, cost_FINAL = 5.0; // alpha punicao de capacidade
+  int check, p_max;
+
+  int odd_even = 0;
+  alpha = 1.05; // aumenta 20%
+  unsigned uav, loc;
+  bool equal;
+  
   std::vector<std::vector<long double> > b_ji;
   std::vector<std::vector<long double> > m_ji;
-  std::vector<long double> o_loc; // ocupada
+  std::vector<long double> o_punish; // ocupada
   std::vector<long double> o_uav; // ocupada
   std::vector<long double> z;
   std::vector<long double> validate;
@@ -42,12 +50,20 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
   {
     m_ji.push_back(std::vector<long double>());
     b_ji.push_back(std::vector<long double>());
+    max = 0.0;
     for(int i = 0; i < N; i++) // location
     {
       m_ji[j].push_back(0.01);// para nao dar conflito com a primeira atualizaçao de bij
       b_ji[j].push_back(c_ji[j][i]);
+      if (b_ji[j][i] > max) {
+        max = b_ji[j][i];
+      }
     }
-    o_loc.push_back(1e-1);
+    for (int i = 0; i < N; ++i) 
+    {
+      b_ji[j][i] /= max;
+    }
+    o_punish.push_back(1e-1);
     o_uav.push_back(1e-1);
     proposed_LOC.push_back(-1);
     proposed_UAV.push_back(-1);
@@ -55,374 +71,320 @@ std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, in
     o_conflict.push_back(0); // para saber se ja teve conflito 
   }
 
-  long double temp = 0.3, t_min=9e-5, alpha, max, cost, cost_FINAL = 5.0; // alpha punicao de capacidade
-  int check, p_max;
-
-  // std::cout << std::setprecision(10) << std::setw(10) << std::setfill(' ') << std::fixed;//scientific
   std::cout << "============================> STARTING\n";
-  int odd_even = 0;
-  alpha = 1.05; // aumenta 20%
-  unsigned uav, loc;
-  bool equal;
-
-  // std::ofstream file;
-  // std::ostringstream n_path;
-  // n_path << path << "_b_graphic.txt";
-  // file.open(n_path.str().c_str(), std::ofstream::out);
-  // file << N << std::endl;
   while (temp > t_min) {
     // alpha = 1-temp;
     std::cout << "############################################################################### TEMP = " << temp << "  ALPHA = " << alpha << " ODDEVEN = " << odd_even << std::endl;   
 
-    if (odd_even%2==0) {      
-      // normalizando bji por linhas
-      // std::cout << "(1-MJI)-----\n";
-      // normalizando MIJ, para suavizar a punicao de bji
-      // for (uav = 0; uav < N; ++uav) // UAV
-      // {
-      //   max = 0.0;
-      //   for (loc = 0; loc < N; ++loc) // LOC
-      //   {
-      //     if (m_ji[uav][loc] > max) {
-      //       max = m_ji[uav][loc];
-      //     }
-      //   }
-      //   for (loc = 0; loc < N; ++loc) // LOC
-      //   {
-      //     m_ji[uav][loc] /= max;
-      //   }
-      // }
-      for (uav = 0; uav < N; ++uav) // UAV
-      {
-        std::cout << "[";
-        max = 0.0;
-        for (loc = 0; loc < N; ++loc) // LOC
-        {
-          b_ji[uav][loc] = b_ji[uav][loc]*(1-m_ji[uav][loc]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
-          std::cout << m_ji[uav][loc] << "\t\t\t\t";
-          // if (b_ji[uav][loc] > max) {
-          //   max = b_ji[uav][loc];
-          // }
-        }
-        std::cout << "]\n";
-        // for (loc = 0; loc < N; ++loc) // LOC
-        // {
-        //   b_ji[uav][loc] /= max;
-        // }
-        o_conflict[uav] = 0; // reiniciando conflito
-      }
-
-      // imprimindo valores
-      {
-        std::cout << "...... BJI\n";
-        for(int j = 0; j < N; j++)
-        {
-          std::cout << "[";
-          for(int i = 0; i < N; i++)
-          {
-            std::cout << b_ji[j][i] << "\t\t\t\t";
-          }  
-          std::cout << "]\n";    
-        }    
-
-        std::cout << "...... O_LOC\n";
-        std::cout << "[";
-        for(int i = 0; i < N; i++)
-        {
-          std::cout << o_loc[i] << "\t\t\t\t";
-        }  
-        std::cout << "]\n";   
-
-        std::cout << "...... O_UAV\n";
-        std::cout << "[";
-        for(int i = 0; i < N; i++)
-        {
-          std::cout << o_uav[i] << "\t\t\t\t";
-        }  
-        std::cout << "]\n";
-      }
-
-      z.clear();
-      validate.clear();
-      for(loc = 0; loc < N; loc++) // locations
-      {
-        z.push_back(0.0);
-        validate.push_back(0.0);
-        for(uav = 0; uav < N; uav++) // uavs
-        {
-          z[loc] += std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp));
-        } 
-      }      
-
-      std::cout << "...... MJI -- por linha\n";
-      check = 0;   
-      for(uav = 0; uav < N; uav++) // uavs
-      {        
-        // std::cout << "Z=";
-        // z = 0.0;        
-        // for(loc = 0; loc < N; loc++) // locations
-        // {        
-        //   z += std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp));
-        // } 
-        // std::cout << z << "\texp(0) = " << std::exp(0);
-
-        max = 0.0;
-        // std::cout << "\n(";
-        // for(loc = 0; loc < N; loc++) // locations
-        // {
-        //   std::cout << ((b_ji[uav][loc]+o_loc[loc])/temp) << "\t\t\t\t";
-        // }
-        // std::cout << ")\n(";
-        for(loc = 0; loc < N; loc++) // locations
-        {
-          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[uav])/temp)) / z[loc];
-          // std::cout << std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) << "\t\t\t\t";
-          // m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_loc[loc])/temp)) / z;
-          validate[loc] += m_ji[uav][loc];
-          if (m_ji[uav][loc] > max) {
-            max = m_ji[uav][loc];
-            p_max = loc;
-          }
-          if (std::isnan(m_ji[uav][loc])) {
-            std::cout << "NAN!\n";
-            goto out;
-          }
-          if (m_ji[uav][loc] == 1.0) {
-            std::cout << "Fixed in 1.0! [" << uav << "]\n";
-            check++;
-            proposed_UAV[uav] = loc; // proposed é UAV/loc representa para qual loc o UAv irá
-          }
-        }
-        // std::cout << ")\n";
-        o_loc[uav] *= alpha; 
-        o_conflict[uav]++;
-        proposed_UAV[uav] = p_max;
-        // frufru
-        std::cout << "[";
-        for(loc = 0; loc < N; loc++) // location
-        {        
-          if (loc == p_max) {
-            std::cout << m_ji[uav][loc] << "*\t\t\t\t";
-          } else {
-            std::cout << m_ji[uav][loc] << "\t\t\t\t";
-          }
-        }
-        std::cout << " : " << p_max << "]\n";
-      }  
-
-      std::cout << "[";
-      for(loc = 0; loc < N; loc++) // location
-      {
-        std::cout << validate[loc] << "\t\t";
-      } 
-      std::cout << "]\n"; 
-
-    } else {
-      // normalizando mij para suavizar a punicao de bji
-      // for (loc = 0; loc < N; ++loc) // LOC
-      // {
-      //   max = 0.0;
-      //   for (uav = 0; uav < N; ++uav) // UAV
-      //   {
-      //     if (m_ji[uav][loc] > max) {
-      //       max = m_ji[uav][loc];
-      //     }
-      //   }
-      //   for (uav = 0; uav < N; ++uav) // UAV
-      //   {
-      //     m_ji[uav][loc] /= max;
-      //   }
-      // }
-      // normalizando bji por coluna
+    for (uav = 0; uav < N; ++uav) // UAV
+    {
+      max = 0.0;
       for (loc = 0; loc < N; ++loc) // LOC
       {
-        max = 0.0;
-        for (uav = 0; uav < N; ++uav) // UAV
-        {
-          b_ji[uav][loc] = b_ji[uav][loc]*(1-m_ji[uav][loc]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
-          // if (b_ji[uav][loc] > max) {
-          //   max = b_ji[uav][loc];
-          // }
+        b_ji[uav][loc] = b_ji[uav][loc]*(1-m_ji[uav][loc]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir com maior probabilidade
+        if (b_ji[uav][loc] > max) {
+          max = b_ji[uav][loc];
         }
-        // for (uav = 0; uav < N; ++uav) // UAV
-        // {
-        //   b_ji[uav][loc] /= max;
-        //   // file << b_ji[uav]/[loc] << " ";
-        // }
-        o_conflict[loc] = 0; // reiniciando conflito
       }
-
-      // imprimindo valores
+      for (loc = 0; loc < N; ++loc) // LOC
       {
-        std::cout << "...... (1-MJI)\n";
-        for(uav = 0; uav < N; uav++)
-        {
-          std::cout << "[";
-          for(loc = 0; loc< N; loc++)
-          {
-            std::cout << m_ji[uav][loc] << "\t\t\t\t";
-          }  
-          std::cout << "]\n";    
-        } 
+        b_ji[uav][loc] /= max;
+      }
+      // if (o_conflict[uav] == 0) { // nao ocorreu conflito durante a busca
+      //   o_loc[uav] = 1e-1;
+      // } 
+      // o_conflict[uav] = 0; // reiniciando conflito
+    }
 
-        std::cout << "...... BJI - por coluna\n";
-        for(uav = 0; uav < N; uav++)
-        {
-          std::cout << "[";
-          for(loc = 0; loc< N; loc++)
-          {
-            std::cout << b_ji[uav][loc] << "\t\t\t\t";
-          }  
-          std::cout << "]\n";    
-        }    
-
-        std::cout << "...... O_UAV\n";
+    // imprimindo valores
+    {
+      for(int j = 0; j < N; j++)
+      {
         std::cout << "[";
         for(int i = 0; i < N; i++)
         {
-          std::cout << o_uav[i] << "\t\t\t\t";
+          std::cout << m_ji[j][i] << "\t\t";
         }  
-        std::cout << "]\n";  
-
-        std::cout << "...... O_LOC\n";
-        std::cout << "[";
-        for(int i = 0; i < N; i++)
-        {
-          std::cout << o_loc[i] << "\t\t\t\t";
-        }  
-        std::cout << "]\n";  
+        std::cout << "]\n";    
       }
 
+      std::cout << "...... BJI\n";
+      for(int j = 0; j < N; j++)
+      {
+        std::cout << "[";
+        for(int i = 0; i < N; i++)
+        {
+          std::cout << b_ji[j][i] << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }    
+
+      std::cout << "...... opunish\n";
+      std::cout << "[";
+      for(int i = 0; i < N; i++)
+      {
+        std::cout << o_punish[i] << "\t\t";
+      }  
+      std::cout << "]\n";
+    }  
+
+    if (odd_even%2==0) {   // column
       z.clear();
       validate.clear();
+      std::cout << "Z \n[";
+      for(loc = 0; loc < N; loc++) // locations
+      {
+        z.push_back(0.0);
+        validate.push_back(0.0);
+        for(uav = 0; uav < N; uav++) // uavs
+        {
+          z[loc] += std::exp(-((b_ji[uav][loc]+o_punish[loc])/temp));          
+        } 
+        std::cout << z[loc] << "\t\t";
+      }      
+      std::cout << "]\n";
+    } else { // line
+      z.clear();
+      validate.clear();
+      std::cout << "Z \n[";
       for(uav = 0; uav < N; uav++) // uavs
       {
         z.push_back(0.0);
         validate.push_back(0.0);
         for(loc = 0; loc < N; loc++) // locations
         {
-          z[uav] += std::exp(-((b_ji[uav][loc]+o_uav[loc])/temp));
+          z[uav] += std::exp(-((b_ji[uav][loc]+o_punish[loc])/temp));          
         } 
-      }
-
-      std::cout << "...... MJI -- por coluna\n";
-      check = 0;   
-      for(loc = 0; loc < N; loc++) // locations
-      {        
-        // std::cout << "Z=";
-        // z = 0.0;
-        // for(uav = 0; uav < N; uav++) // uavs
-        // {        
-        //   z += std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)); 
-        // }
-        // std::cout << z << "\t";
-
-        max = 0.0;
-        // frufru
-        // std::cout << "\n(";
-        // for(uav = 0; uav < N; uav++) // uavs
-        // {
-        //   std::cout << ((b_ji[uav][loc]+o_uav[uav])/temp) << "\t\t\t\t";
-        // }
-        // std::cout << ")\n(";
-        for(uav = 0; uav < N; uav++) // uavs
-        {
-          m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[loc])/temp)) / z[uav];
-          // std::cout << std::exp(-((b_ji[uav][loc]+o_uav[uav])/temp)) << "\t\t\t\t";
-          validate[uav] += m_ji[uav][loc];
-          if (m_ji[uav][loc] > max) {
-            max = m_ji[uav][loc];
-            p_max = uav;
-          }
-          if (std::isnan(m_ji[uav][loc])) {
-            std::cout << "NAN!\n";
-            // file.close();
-            goto out;
-          }
-          if (m_ji[uav][loc] == 1.0) {
-            std::cout << "Fixed in 1.0! [" << loc << "]\n";
-            check++;
-            proposed_LOC[p_max] = loc; // proposed é UAV/loc representa para qual loc o UAv irá
-          }
-        }
-        // std::cout << ")\n";
-        o_uav[loc] *= alpha; 
-        o_conflict[loc]++;
-        proposed_LOC[p_max] = loc; // solucao final proposed é UAV/LOC
-        // frufru
-        std::cout << "[";
-        for(uav = 0; uav < N; uav++) // uavs
-        {        
-          if (uav == p_max) {
-            std::cout << m_ji[uav][loc] << "*\t\t\t\t";
-          } else {
-            std::cout << m_ji[uav][loc] << "\t\t\t\t";
-          }
-        }
-        std::cout << " : " << p_max << "]\n";
-      }
-
-      // frufru   
-      std::cout << "--- mji uav/loc\n";   
-      for(uav = 0; uav < N; uav++) // uavs
-      {      
-        std::cout << "[";
-        for (loc = 0; loc < N; ++loc) // LOC
-        {  
-          std::cout << m_ji[uav][loc] << "\t\t\t\t";
-        }
-        std::cout << "]\n";
-      } 
-
-      std::cout << "[";
-      for (uav = 0; uav < N; ++uav) // UAV
-      {
-        std::cout << validate[uav] << "\t\t";
-      } 
+        std::cout << z[uav] << "\t\t";
+      }      
       std::cout << "]\n";
-
+    }
+        
+    std::cout << "...... MJI\n";
+    check = 0;   
+    for(uav = 0; uav < N; uav++) // uavs
+    {
+      max = 0.0;
+      for(loc = 0; loc < N; loc++) // locations
+      {
+        m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_punish[loc])/temp)) / ((odd_even%2==0) ? z[loc] : z[uav]);
+        validate[loc] += m_ji[uav][loc];
+        if (m_ji[uav][loc] > max) {
+          max = m_ji[uav][loc];
+          p_max = loc;
+        }
+        if (std::isnan(m_ji[uav][loc])) {
+          std::cout << "NAN!\n";
+          goto out;
+        }
+        if (m_ji[uav][loc] == 1.0) {
+          std::cout << "Fixed in 1.0! [" << uav << "]\n";
+          check++;
+        }
+      }
+      std::cout << p_max << " -> [" << o_punish[p_max] << ",";
+      o_punish[p_max] *= alpha; 
+      std::cout << o_punish[p_max] << "] ---- bij " << b_ji[uav][p_max] << "\n";
+      // o_conflict[uav]++;
+      // proposed_UAV[uav] = p_max;
+      // frufru
+      std::cout << "[";
+      for(loc = 0; loc < N; loc++) // location
+      {        
+        if (loc == p_max) {
+          std::cout << m_ji[uav][loc] << "*\t\t";
+        } else {
+          std::cout << m_ji[uav][loc] << "\t\t";
+        }
+      }
+      std::cout << " : " << p_max << "]\n";
     }  
 
-    // frufru
-    std::cout << "LOC [";
-    for(uav = 0; uav < N; uav++) // uavs
+    std::cout << "VAlidate\n[";
+    for(loc = 0; loc < N; loc++) // location
     {
-      std::cout << proposed_LOC[uav] << "\t";
-    }
+      std::cout << validate[loc] << "\t\t";
+    } 
+    std::cout << "]\n"; 
+
+    // } else {
+    //   // normalizando bji por coluna
+    //   for (loc = 0; loc < N; ++loc) // LOC
+    //   {
+    //     max = 0.0;
+    //     for (uav = 0; uav < N; ++uav) // UAV
+    //     {
+    //       b_ji[uav][loc] = b_ji[uav][loc]*(1-m_ji[uav][loc]); // quanto menor a probabilidade, mais mantém de bij, permitindo reduzir o com maior probabilidade
+    //       if (b_ji[uav][loc] > max) {
+    //         max = b_ji[uav][loc];
+    //       }
+    //     }
+    //     for (uav = 0; uav < N; ++uav) // UAV
+    //     {
+    //       b_ji[uav][loc] /= max;
+    //     }
+    //     if (o_conflict[loc] == 0) { // nao ocorreu conflito durante a busca
+    //       o_uav[loc] = 1e-1;
+    //     }
+    //     o_conflict[loc] = 0; // reiniciando conflito
+    //   }
+
+    //   // imprimindo valores
+    //   {
+    //     for(uav = 0; uav < N; uav++)
+    //     {
+    //       std::cout << "[";
+    //       for(loc = 0; loc< N; loc++)
+    //       {
+    //         std::cout << m_ji[uav][loc] << "\t\t";
+    //       }  
+    //       std::cout << "]\n";    
+    //     } 
+
+    //     std::cout << "...... BJI - por coluna\n";
+    //     for(uav = 0; uav < N; uav++)
+    //     {
+    //       std::cout << "[";
+    //       for(loc = 0; loc< N; loc++)
+    //       {
+    //         std::cout << b_ji[uav][loc] << "\t\t";
+    //       }  
+    //       std::cout << "]\n";    
+    //     }    
+
+    //     std::cout << "...... O_UAV\n";
+    //     std::cout << "[";
+    //     for(int i = 0; i < N; i++)
+    //     {
+    //       std::cout << o_uav[i] << "\t\t";
+    //     }  
+    //     std::cout << "]\n";  
+
+    //     std::cout << "...... O_LOC\n";
+    //     std::cout << "[";
+    //     for(int i = 0; i < N; i++)
+    //     {
+    //       std::cout << o_loc[i] << "\t\t";
+    //     }  
+    //     std::cout << "]\n";  
+    //   }
+
+    //   z.clear();
+    //   validate.clear();
+    //   for(uav = 0; uav < N; uav++) // uavs
+    //   {
+    //     z.push_back(0.0);
+    //     validate.push_back(0.0);
+    //     for(loc = 0; loc < N; loc++) // locations
+    //     {
+    //       z[uav] += std::exp(-((b_ji[uav][loc]+o_uav[loc])/temp));
+    //     }
+    //   }
+
+    //   std::cout << "...... MJI -- por coluna\n";
+    //   check = 0;   
+    //   for(loc = 0; loc < N; loc++) // locations
+    //   {       
+    //     max = 0.0;
+    //     for(uav = 0; uav < N; uav++) // uavs
+    //     {
+    //       m_ji[uav][loc] = std::exp(-((b_ji[uav][loc]+o_uav[loc])/temp)) / z[uav];
+    //       validate[uav] += m_ji[uav][loc];
+    //       if (m_ji[uav][loc] > max) {
+    //         max = m_ji[uav][loc];
+    //         p_max = uav;
+    //       }
+    //       if (std::isnan(m_ji[uav][loc])) {
+    //         std::cout << "NAN!\n";
+    //         // file.close();
+    //         goto out;
+    //       }
+    //       if (m_ji[uav][loc] == 1.0) {
+    //         std::cout << "Fixed in 1.0! [" << loc << "]\n";
+    //         check++;
+    //       }
+    //     }
+    //     o_uav[loc] *= alpha; 
+    //     o_conflict[loc]++;
+    //     proposed_LOC[loc] = p_max; // LOC/UAV
+    //     // frufru
+    //     std::cout << "[";
+    //     for(uav = 0; uav < N; uav++) // uavs
+    //     {        
+    //       if (uav == p_max) {
+    //         std::cout << m_ji[uav][loc] << "*\t\t";
+    //       } else {
+    //         std::cout << m_ji[uav][loc] << "\t\t";
+    //       }
+    //     }
+    //     std::cout << " : " << p_max << "]\n";
+    //   }
+
+    //   // frufru   
+    //   std::cout << "--- mji uav/loc\n";   
+    //   for(uav = 0; uav < N; uav++) // uavs
+    //   {      
+    //     std::cout << "[";
+    //     for (loc = 0; loc < N; ++loc) // LOC
+    //     {  
+    //       std::cout << m_ji[uav][loc] << "\t\t";
+    //     }
+    //     std::cout << "]\n";
+    //   } 
+
+    //   std::cout << "[";
+    //   for (uav = 0; uav < N; ++uav) // UAV
+    //   {
+    //     std::cout << validate[uav] << "\t\t";
+    //   }
+    //   std::cout << "]\n";
+    // }  
+
+    // frufru
+    // std::cout << "LOC [";
+    // for(int i = 0; i < N; i++) // uavs
+    // {
+    //   std::cout << proposed_LOC[i] << "\t";
+    // }
     std::cout << "]\n";
     std::cout << "UAV [";
-    for(uav = 0; uav < N; uav++) // uavs
+    for(int i = 0; i < N; i++) // uavs
     {
-      std::cout << proposed_UAV[uav] << "\t";
+      std::cout << proposed_UAV[i] << "\t";
     }
     std::cout << "]\n";
 
-    cost = 0.0;
-    equal = true;
-    for(uav = 0; uav < N; uav++) // uavs
-    {
-      if (proposed_LOC[uav] != proposed_UAV[uav]) {
-        equal = false;
-        cost = -1; // not a valid solution
-        break;
-      }
-      cost += c_ji[uav][proposed_LOC[uav]];
-    }
+    // cost = 0.0;
+    // equal = true;
+    // for(int i = 0; i < N; i++) // uavs
+    // {
+    //   if (proposed_LOC[proposed_UAV[i]] != proposed_UAV[i]) {
+    //     equal = false;
+    //     cost = -1; // not a valid solution
+    //     break;
+    //   } 
+    //   cost += c_ji[i][proposed_LOC[i]];
+    // }
 
-    std::cout << "CUSTO---------------------------------> " << cost << "\n";
+    // if (cost != -1) {
+    //   std::cout << "Valid solution\n";
+    // }
 
-    if (equal) {
-      if (cost < cost_FINAL) {
-        std::cout << "----> NEw final solution!\n";
-        cost_FINAL = cost;
-        proposed_FINAL = proposed_UAV;
-      }
-    }    
+    // std::cout << "CUSTO---------------------------------> " << cost << "\n";
+
+    // if (equal) {
+    //   if (cost < cost_FINAL) {
+    //     std::cout << "----> NEw final solution!\n";
+    //     cost_FINAL = cost;
+    //     proposed_FINAL = proposed_UAV;
+    //   }
+    // }    
       
     temp *= 0.9;
     odd_even++;
-    // file << std::endl;
   }
+
+
   out:
   std::cout << "OUT --->cost = " << cost << std::endl;
   if (cost == -1) {
