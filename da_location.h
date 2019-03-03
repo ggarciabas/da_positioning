@@ -51,7 +51,6 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   std::vector<int> proposed_FINAL;
   std::vector<int> proposed_UAV;
   std::vector<int> proposed_LOC;
-  std::vector<long double> z;
   // Mai
   std::vector<std::vector<long double> > m_ij;
   // variavel da tranformacao algebrica (parte do self-amplification)
@@ -81,15 +80,15 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
     proposed_FINAL.push_back(-1);
     proposed_UAV.push_back(-1);
     proposed_LOC.push_back(-1);
-    z.push_back(0);
   }
 
-  double gamma = 0.3; // o que faz?
+  double gamma = 1; // o que faz?
   long double new_mij;
   int odd_even = 0;
   unsigned i, j, k;
   int m_pos;
   long double v_max;
+  int check;
 
   std::cout << std::fixed << std::setw(8) << std::setprecision(8);
 
@@ -117,36 +116,6 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
       }  
       std::cout << "]\n";    
     }    
-
-    if ((odd_even%2) == 0) {
-      // UAV normalization
-      for (i = 0; i < N; ++i)
-      {
-        z[i] = 0.0;
-        for (k = 0; k < N; ++k)
-        {
-          z[i] += m_ij[i][k];
-        }
-      }
-    } else {
-      // LOC normalization
-      for (i = 0; i < N; ++i)
-      {
-        z[i] = 0.0;
-        for (k = 0; k < N; ++k)
-        {
-          z[i] += m_ij[k][i];
-        }
-      }
-    }
-
-    std::cout << "Z\n[";
-    for(i = 0; i < N; i++)
-    {
-      std::cout << z[i] << "\t\t";
-    }
-    std::cout << "]\n";
-    
 
     std::cout << "...... m_ij[i][j] * b_ij[i][j]\n";
     for (i = 0; i < N; ++i)
@@ -214,17 +183,6 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
       std::cout << "]\n";    
     }
 
-    std::cout << "...... exp(QIJ/temp)/z\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
-      {
-        std::cout << expl((gamma * o_ij[i][j]-(m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]))/(long double)temp)/((odd_even%2==0)?z[i]:z[j]) << "\t\t";
-      }  
-      std::cout << "]\n";    
-    }
-
     for (i = 0; i < N; ++i)
     {
       for (j = 0; j < N; ++j)
@@ -234,7 +192,7 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
         // calculate Q_{ij}
         q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];
         // calculate m_{ij}
-        new_mij = expl((q_ij[i][j] / (long double) temp))/ ((odd_even%2==0)?z[i]:z[j]);
+        new_mij = expl((q_ij[i][j] / (long double) temp));
         if (isnan(new_mij)) {
           std::cout << "NAN! \n";
           exit(1);
@@ -252,7 +210,70 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
         std::cout << m_ij[i][j] << "\t\t";
       }  
       std::cout << "]\n";    
-    }    
+    }
+
+    check = 0;
+    if ((odd_even%2) == 0) {
+      // UAV normalization
+      long double total;
+      for (i = 0; i < N; ++i)
+      {
+        total = 0.0;
+        for (k = 0; k < N; ++k)
+        {
+          total += m_ij[i][k];
+        }
+        v_max = 0.0;
+        for (k = 0; k < N; ++k)
+        {
+          new_mij = m_ij[i][k] / total;        
+          if (isnan(new_mij)) {
+            std::cout << "UAV norm NAN: " << m_ij[i][k] << " " << total << " " << i << " " << k << "\n";
+            exit(1);
+          }
+          if (new_mij > v_max) {
+            v_max = new_mij;
+            m_pos = k;
+          }
+          m_ij[i][k] = new_mij;
+          if (m_ij[i][k] == 1.0) {
+            check++;
+            proposed_FINAL[i] = k;
+          }
+        }
+        proposed_UAV[i] = m_pos;
+      }
+    } else {
+      // LOC normalization
+      long double total;
+      for (i = 0; i < N; ++i)
+      {
+        total = 0.0;
+        for (k = 0; k < N; ++k)
+        {
+          total += m_ij[k][i];
+        }
+        v_max = 0.0;
+        for (k = 0; k < N; ++k)
+        {
+          new_mij = m_ij[k][i] / total;
+          if (isnan(new_mij)) {
+            std::cout << "LOC norm NAN: " << m_ij[k][i] << " " << total << " " << i << " " << k << "\n";
+            exit(1);
+          }
+          if (new_mij > v_max) {
+            v_max = new_mij;
+            m_pos = k;
+          }
+          m_ij[k][i] = new_mij;
+          if (m_ij[k][i] == 1.0) {
+            check++;
+            proposed_FINAL[k] = i;
+          }
+        }
+        proposed_LOC[i] = m_pos;
+      }
+    }
 
     std::cout << "UAV \n[";
     for(i = 0; i < N; i++)
@@ -268,9 +289,13 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
     }
     std::cout << "]\n";
 
+    if (check == N) {
+      goto out;
+    }
+
     temp *= 0.99;
     o_ij = m_ij;
-    // odd_even++;
+    odd_even++;
     std::cout << " ---------------------------------------- \n";
   }
   // permite sair dos lacos ao encontrar 1 para cada localizacao
