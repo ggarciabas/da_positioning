@@ -30,7 +30,8 @@ int main () {
         std::cin >> sequential[i];
     }
 
-    std::vector<int> proposed (da_positioning(c_ji, N)); //, name));
+    // std::vector<int> proposed (da_positioning(c_ji, N)); //, name));
+    std::vector<int> proposed (DA_Rangarajan(c_ji, N)); //, name));
 
     std::ofstream file;
     std::ostringstream path;
