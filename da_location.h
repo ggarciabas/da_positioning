@@ -51,7 +51,7 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
     for (unsigned j = 0; j < N; ++j) // LOC
     {
       rdom = (double)rand()/RAND_MAX; // [0,1]
-      m_ij[i].push_back(1.0/(double)N + rdom);
+      m_ij[i].push_back(1.0/(double)N); // + rdom);
       o_ij[i].push_back(m_ij[i][j]);
       lamb_ij[i].push_back(0.0);
       q_ij[i].push_back(0.0);
