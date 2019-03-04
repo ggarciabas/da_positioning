@@ -49,8 +49,7 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   // srand(time(NULL));
   double temp = 0.9;
   std::vector<int> proposed_FINAL;
-  std::vector<int> proposed_UAV;
-  std::vector<int> proposed_LOC;
+  std::vector<int> used;
   std::vector<long double> z;
   std::vector<long double> pun_v;
   // Mai
@@ -80,13 +79,12 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
       q_ij[i].push_back(0.0);
     }
     proposed_FINAL.push_back(-1);
-    proposed_UAV.push_back(-1);
-    proposed_LOC.push_back(-1);
+    used.push_back(-1);
     z.push_back(0.0);
     pun_v.push_back(0.0);
   }
 
-  long double gamma = 0.6; // o que faz?
+  long double gamma = 1; // o que faz?
   long double lamb = 1;
   long double new_mij;
   int odd_even = 0;
@@ -97,144 +95,33 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
 
   std::cout << std::fixed << std::setw(8) << std::setprecision(8);
 
-  while (temp >= 1e-5)
+  while (temp >= 1e-3)
   {
     std::cout << "---------------------------- temp: " << temp << "  odd_even: " << odd_even << std::endl;
 
     if ((odd_even%2)==0) { // line total -- UAV
       for (i = 0; i < N; ++i)
       {   
-        pun_v[i] = 0.0;
-        for (k = 0; k < N; ++k)
-        {
-          pun_v[i] += m_ij[i][k]; // sum line -- hold line, change column
-        }
         z[i] = 0.0;
         for (k = 0; k < N; ++k)
         {
-          z[i] += expl((gamma * o_ij[i][k] - m_ij[i][k] * b_ij[i][k] * b_ij[i][k] + ((pun_v[i]>1)?(1-temp)*lamb : 0)) / (long double) temp); // hold line, change column          
+          z[i] += expl((gamma * o_ij[i][k] - m_ij[i][k] * b_ij[i][k] * b_ij[i][k]) / (long double) temp); // hold line, change column          
         }
+        used[i] = -1;
       }
     } else {  // column total -- LOC
       for (i = 0; i < N; ++i)
-      {    
-        pun_v[i] = 0.0;
-        for (k = 0; k < N; ++k)
-        {
-          pun_v[i] += m_ij[k][i]; // sum column - hold column, change line
-        }
+      {   
         z[i] = 0.0;
         for (k = 0; k < N; ++k)
         {
-          z[i] += expl((gamma * o_ij[k][i] - m_ij[k][i] * b_ij[k][i] * b_ij[k][i] + ((pun_v[i]>1)?(1-temp)*lamb : 0)) / (long double) temp); // hold column, change lines
+          z[i] += expl((gamma * o_ij[k][i] - m_ij[k][i] * b_ij[k][i] * b_ij[k][i]) / (long double) temp); // hold column, change lines
         }
+        used[i] = -1;
       }
     }
 
-    { // frufru
-      std::cout << "...... Z \n[";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << z[i] << "\t\t";
-      }
-      std::cout << "]\n";
-
-      std::cout << "...... PUN V \n[";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << pun_v[i] << "\t\t";
-      }
-      std::cout << "]\n";
-
-      std::cout << "...... BIJ\n";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << "[";
-        for (j = 0; j < N; ++j)
-        {
-          std::cout << b_ij[i][j] << "\t\t";
-        }  
-        std::cout << "]\n";    
-      }   
-      
-      std::cout << "...... MIJ\n";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << "[";
-        for (j = 0; j < N; ++j)
-        {
-          std::cout << m_ij[i][j] << "\t\t";
-        }  
-        std::cout << "]\n";    
-      }    
-
-      std::cout << "...... m_ij[i][j] * b_ij[i][j]\n";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << "[";
-        for (j = 0; j < N; ++j)
-        {
-          std::cout << m_ij[i][j] * b_ij[i][j] << "\t\t";
-        }  
-        std::cout << "]\n";    
-      }
-
-      std::cout << "...... m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]\n";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << "[";
-        for (j = 0; j < N; ++j)
-        {
-          std::cout << (m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]) << "\t\t";
-        }  
-        std::cout << "]\n";    
-      }
-
-      std::cout << "...... gamma * o_ij[i][j]\n";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << "[";
-        for (j = 0; j < N; ++j)
-        {
-          std::cout << gamma*o_ij[i][j] << "\t\t";
-        }  
-        std::cout << "]\n";    
-      }
-
-      std::cout << "...... gamma * o_ij[i][j] - m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]\n";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << "[";
-        for (j = 0; j < N; ++j)
-        {
-          std::cout << gamma * o_ij[i][j] - (m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]) + ((odd_even%2==0 && pun_v[i]>1) ? (1-temp)*lamb : ((odd_even%2!=0 && pun_v[j]>1) ? (1-temp)*lamb : 0)) << "\t\t";
-        }  
-        std::cout << "]\n";    
-      }
-
-      std::cout << "...... QIJ/temp\n";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << "[";
-        for (j = 0; j < N; ++j)
-        {
-          std::cout << ((gamma * o_ij[i][j] - (m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]) +((odd_even%2==0 && pun_v[i]>1) ? (1-temp)*lamb : ((odd_even%2!=0 && pun_v[j]>1) ? (1-temp)*lamb : 0)))/(long double)temp) << "\t\t";
-        }  
-        std::cout << "]\n";    
-      }
-
-      std::cout << "...... exp QIJ/temp\n";
-      for (i = 0; i < N; ++i)
-      {
-        std::cout << "[";
-        for (j = 0; j < N; ++j)
-        {
-          std::cout << expl((gamma * o_ij[i][j]-(m_ij[i][j] * b_ij[i][j]  * b_ij[i][j])+((odd_even%2==0 && pun_v[i]>1) ? (1-temp)*lamb : ((odd_even%2!=0 && pun_v[j]>1) ? (1-temp)*lamb : 0)))/(long double)temp) << "\t\t";
-        }  
-        std::cout << "]\n";    
-      }    
-    }
-
+    check = 0;
     for (i = 0; i < N; ++i)
     {
       for (j = 0; j < N; ++j)
@@ -244,12 +131,17 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
         // calculate Q_{ij}
         q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];        
         // calculate m_{ij}
-        new_mij = expl((q_ij[i][j] + ((odd_even%2==0 && pun_v[i]>1) ? (1-temp)*lamb : ((odd_even%2!=0 && pun_v[j]>1) ? (1-temp)*lamb : 0)) ) / (long double) temp) / ((odd_even%2==0) ? z[i] : z[j]); // apply normalization here, the change from line/column occurs above in the correct calculation of Z
+        new_mij = expl((q_ij[i][j] / (long double) temp)) / ((odd_even%2==0) ? z[i] : z[j]); // apply normalization here, the change from line/column occurs above in the correct calculation of Z
         if (isnan(new_mij)) {
           std::cout << "NAN! \n";
           exit(1);
         }
         m_ij[i][j] = new_mij;
+        if (m_ij[i][j] > 0.99999) {
+          check++;
+          proposed_FINAL[i] = j;
+          used[j] = 1;  
+        }
       }
     }    
 
@@ -291,17 +183,10 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
       }
     }
 
-    std::cout << "UAV \n[";
+    std::cout << "proposed_FINAL \n[";
     for(i = 0; i < N; i++)
     {
-      std::cout << proposed_UAV[i] << "\t\t";
-    }
-    std::cout << "]\n";
-
-    std::cout << "LOC \n[";
-    for(i = 0; i < N; i++)
-    {
-      std::cout << proposed_LOC[i] << "\t\t";
+      std::cout << proposed_FINAL[i] << "\t\t";
     }
     std::cout << "]\n";
 
@@ -316,7 +201,21 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   }
   // permite sair dos lacos ao encontrar 1 para cada localizacao
   out:
-  
+  int find = 0;
+  for(i = 0; i < N; i++)
+  {
+    if (proposed_FINAL[i] == -1) {
+      // find  sequential unused
+      for (; find < N; find++) {
+        if (used[find] == -1) {
+          proposed_FINAL[i] = find;
+          used[find] = 1;
+          find++;
+          break;
+        }
+      }
+    }
+  }
   return proposed_FINAL;
 }
 
