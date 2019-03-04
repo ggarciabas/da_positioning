@@ -1,10 +1,19 @@
 #include "da_location.h"
 
 int main () {
+    
     std::string name;
     std::cin >> name;
+    
+    std::ofstream file;
+    std::ostringstream path;
+    path << name << "_out.txt";
+    file.open(path.str().c_str(), std::ofstream::out);
+
+    
     int N;
     std::cin >> N;
+    file << N << "\n";
     double v;
     std::vector<std::vector<long double> > c_ji;
     for (int i = 0; i<N; ++i) {
@@ -12,7 +21,9 @@ int main () {
         for (int j = 0; j<N; ++j) {
             c_ji[i].push_back(0.0);
             std::cin >> c_ji[i][j];
+            file << c_ji[i][j] << ",";
         }
+        file << "\n";
     }
     std::vector<int> exhaustive;
     std::vector<int> random;
@@ -32,12 +43,7 @@ int main () {
 
     // std::vector<int> proposed (da_positioning(c_ji, N)); //, name));
     std::vector<int> proposed (DA_Rangarajan(c_ji, N)); //, name));
-
-    std::ofstream file;
-    std::ostringstream path;
-    path << name << "_out.txt";
-    file.open(path.str().c_str(), std::ofstream::out);
-
+    
     long double s_exaustive = 0.0;
     long double s_proposed = 0.0;
     long double s_random = 0.0;
@@ -49,23 +55,27 @@ int main () {
         s_proposed += c_ji[i][proposed[i]];
     }
     
-    file << "EX:\t\t" << s_exaustive << "\t[\t";
+    // file << "EX:\t\t" << s_exaustive << "\t[\t";
     for (int i = 0; i<N; ++i) {
-        file << exhaustive[i] << "\t";
+        file << exhaustive[i] << ",";
     }
-    file << "]\nPR:\t\t" << s_proposed << "\t[\t";
+    file << "\n";
+    // file << "]\nPR:\t\t" << s_proposed << "\t[\t";
     for (int i = 0; i<N; ++i) {
-        file << proposed[i] << "\t";
+        file << proposed[i] << ",";
     }
-    file << "]\nRD:\t\t" << s_random << "\t[\t";
+    file << "\n";
+    // file << "]\nRD:\t/t" << s_random << "\t[\t";
     for (int i = 0; i<N; ++i) {
-        file << random[i] << "\t";
+        file << random[i] << ",";
     }
-    file << "]\nSQ:\t\t" << s_sequential<< "\t[\t";
+    file << "\n";
+    // file << "]\nSQ:\t\t" << s_sequential<< "\t[\t";
     for (int i = 0; i<N; ++i) {
-        file << sequential[i] << "\t";
+        file << sequential[i] << ",";
     }
-    file << "]\n";
+    file << "\n";
+    // file << "]\n";
     file.close();
 
     return 0;

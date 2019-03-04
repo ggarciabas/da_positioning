@@ -27,7 +27,7 @@ void PrintMatrix (std::vector<std::vector<long double> > matrix, std::string nam
 }
 
 std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int N) {
-  double temp = 0.9;
+  double temp = 0.6;
   std::vector<int> proposed_FINAL;
   std::vector<int> used;
   // Mai
@@ -40,7 +40,7 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   std::vector<std::vector<long double> > q_ij;
   // Ptr<UniformRandomVariable> e_ai = CreateObject<UniformRandomVariable>(); // Padrão [0,1]
   // e_ai->SetAttribute ("Min", DoubleValue (min));
-  double rdom;
+  // double rdom;
 
   for (unsigned i = 0; i < N; ++i) // UAV
   {
@@ -50,7 +50,7 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
     q_ij.push_back(std::vector<long double>());
     for (unsigned j = 0; j < N; ++j) // LOC
     {
-      rdom = (double)rand()/RAND_MAX; // [0,1]
+      // rdom = (double)rand()/RAND_MAX; // [0,1]
       m_ij[i].push_back(1.0/(double)N); // + rdom);
       o_ij[i].push_back(m_ij[i][j]);
       lamb_ij[i].push_back(0.0);
@@ -67,11 +67,11 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   long double v_max;
   int check;
 
-  int itC_max = 50;
-  int itB_max = 50;
+  int itC_max = 20;
+  int itB_max = 20;
 
   std::cout << std::fixed << std::setw(8) << std::setprecision(8);
-
+  int total_temp = 0;
   while (temp >= 1e-3)
   {
     std::cout << "---------------------------- temp: " << temp << std::endl;
@@ -208,8 +208,9 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
       goto out;
     }
 
-    temp *= 0.99;
+    temp *= 0.9;
     o_ij = m_ij;
+    total_temp++;
     std::cout << " ---------------------------------------- \n";
   }
   // permite sair dos lacos ao encontrar 1 para cada localizacao
@@ -231,6 +232,7 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
       }
     }
   }
+  std::cout << "Total Temp: " << total_temp << std::endl;
   return proposed_FINAL;
 }
 
@@ -903,17 +905,17 @@ std::vector<std::vector<long double> > g_b_ij;
 double glob_val = 1000.0;
 
 void permute_uav (std::vector<int> uav_loc, int start, int end, int N) {
-  std::cout << "[" << start << "," << end << "] ";
+  // std::cout << "[" << start << "," << end << "] ";
   if (start == end) {
     double val = 0.0;
     for (int i = 0; i<N; ++i) {
-      std::cout << uav_loc[i] << " ";
+      // std::cout << uav_loc[i] << " ";
       // val = val + g_b_ij[uav_loc[i]][i];
       val = val + g_b_ij[i][uav_loc[i]];
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
     if (val < glob_val) {
-      std::cout << "New value: " << val << std::endl;
+      // std::cout << "New value: " << val << std::endl;
       glob_val = val;
       for (int i = 0; i<N; ++i) { // copiando
         min_conf[i] = uav_loc[i];
@@ -934,17 +936,17 @@ void permute_uav (std::vector<int> uav_loc, int start, int end, int N) {
 }
 
 void permute_loc (std::vector<int> uav_loc, int start, int end, int N) {
-  std::cout << "[" << start << "," << end << "] ";
+  // std::cout << "[" << start << "," << end << "] ";
   if (start == end) {
     double val = 0.0;
     for (int i = 0; i<N; ++i) {
-      std::cout << uav_loc[i] << " ";
+      // std::cout << uav_loc[i] << " ";
       // val = val + g_b_ij[uav_loc[i]][i];
       val = val + g_b_ij[uav_loc[i]][i]; // variando a coluna e procurando o menor
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
     if (val < glob_val) {
-      std::cout << "New value: " << val << std::endl;
+      // std::cout << "New value: " << val << std::endl;
       glob_val = val;
       for (int i = 0; i<N; ++i) { // copiando
         min_conf[uav_loc[i]] = i; // salvando uav/loc para nao ser necessario converter!

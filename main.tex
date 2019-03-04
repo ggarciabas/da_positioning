@@ -1,0 +1,63 @@
+\documentclass{beamer}
+
+%
+% Choose how your presentation looks.
+%
+% For more themes, color themes and font themes, see:
+% http://deic.uab.es/~iblanes/beamer_gallery/index_by_theme.html
+%
+
+\definecolor{azul_}{HTML}{37474f}
+\definecolor{cinza_}{HTML}{e0e0e0}
+\mode<presentation>
+{
+  \usetheme{default}      % or try Darmstadt, Madrid, Warsaw, ...
+  \usecolortheme{default} % or try albatross, beaver, crane, ...
+  \usefonttheme{structurebold}  % or try serif, structurebold, ...
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+  % https://en.wikibooks.org/wiki/LaTeX/Presentations
+  \setbeamercolor{background canvas}{bg=white}
+  \setbeamercolor{titlelike}{parent=structure,fg=azul_}
+  \setbeamercolor{block title}{fg=azul_}
+  \setbeamercolor{normal text}{fg=azul_}
+  \setbeamercolor{itemize item}{fg=azul_}
+  \setbeamercolor{itemize subitem}{fg=azul_}
+  \setbeamercolor{caption name}{fg=azul_}
+  \setbeamerfont{frametitle}{size=\Large}
+}
+
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+
+\title[DA Positioning]{\huge Results from positioning DA - Rangarajan}
+\author{Giovanna Garcia Basilio}
+\institute{LabSC - CPGEI - UTFPR}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% Uncomment these lines for an automatically generated outline.
+\begin{frame}{Overview}
+ \tableofcontents
+\end{frame}
+
+\begin{frame}{Scenario}
+  \begin{center}
+    \Huge Testing scenarios from NS3
+  \end{center} 
+\end{frame}
+\input{cenarios.tex}
+
+\begin{frame}{Scenario}
+  \begin{center}
+    \Huge Random values to cost matrix - Cij
+  \end{center}
+\end{frame}
+\input{random.tex}
+
+\end{document}
