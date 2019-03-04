@@ -67,6 +67,9 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   long double v_max;
   int check;
 
+  int itC_max = 50;
+  int itB_max = 50;
+
   std::cout << std::fixed << std::setw(8) << std::setprecision(8);
 
   while (temp >= 1e-3)
@@ -79,58 +82,81 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
     }
 
     check = 0;
-    for (i = 0; i < N; ++i)
-    {
-      for (j = 0; j < N; ++j)
+    bool converge_B = true;
+    int itB = 0;
+    do {
+      converge_B = true;
+
+      for (i = 0; i < N; ++i)
       {
-        // calculate \lamb_{ij}
-        lamb_ij[i][j] = m_ij[i][j] * b_ij[i][j];
-        // calculate Q_{ij}
-        q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];        
-        // calculate m_{ij}
-        new_mij = expl((q_ij[i][j] / (long double) temp)); 
-        if (isnan(new_mij)) {
-          std::cout << "NAN! \n";
-          exit(1);
+        for (j = 0; j < N; ++j)
+        {
+          // calculate \lamb_{ij}
+          lamb_ij[i][j] = m_ij[i][j] * b_ij[i][j];
+          // calculate Q_{ij}
+          q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];        
+          // calculate m_{ij}
+          new_mij = expl((q_ij[i][j] / (long double) temp)); 
+          if (isnan(new_mij)) {
+            std::cout << "NAN! \n";
+            exit(1);
+          }
+          if (m_ij[i][j] != new_mij) {
+            converge_B = false;
+          }
+          m_ij[i][j] = new_mij;        
         }
-        m_ij[i][j] = new_mij;        
       }
-    }
 
-    long double total;
-    for (i = 0; i < N; ++i)
-    {
-      total = 0.0;
-      for (k = 0; k < N; ++k)
-      {
-        total += m_ij[i][k];
-      }
-      for (k = 0; k < N; ++k)
-      {
-        new_mij = m_ij[i][k] / total;
-        // if (m_ij[i][k] != new_mij) {
-        //   converge_B = converge_C = false;
-        // }
-        m_ij[i][k] = new_mij;
-      }
-    }
+      bool converge_C = true;
+      int itC = 0;
+      do {
+        converge_C = true;
 
-    for (i = 0; i < N; ++i)
-    {
-      total = 0.0;
-      for (k = 0; k < N; ++k)
-      {
-          total += m_ij[k][i];
-      }
-      for (k = 0; k < N; ++k)
-      {
-          new_mij = m_ij[k][i] / total;
-          // if (m_ij[k][i] != new_mij) {
-          //     converge_B = converge_C = false;
-          // }
-          m_ij[k][i] = new_mij;
-      }
-    }
+        long double total;
+        for (i = 0; i < N; ++i)
+        {
+          total = 0.0;
+          for (k = 0; k < N; ++k)
+          {
+            total += m_ij[i][k];
+          }
+          for (k = 0; k < N; ++k)
+          {
+            new_mij = m_ij[i][k] / total;
+            if (m_ij[i][k] != new_mij) {
+              converge_C = converge_B = false;
+            }
+            m_ij[i][k] = new_mij;
+          }
+        }
+
+        for (i = 0; i < N; ++i)
+        {
+          total = 0.0;
+          for (k = 0; k < N; ++k)
+          {
+              total += m_ij[k][i];
+          }
+          for (k = 0; k < N; ++k)
+          {
+              new_mij = m_ij[k][i] / total;
+              if (m_ij[k][i] != new_mij) {
+                  converge_C = converge_B = false;
+              }
+              m_ij[k][i] = new_mij;
+          }
+        }
+        itC++;
+      } while (!converge_C && itC < itC_max);
+      // if (converge_C) {
+      //   std::cout << "Saiu por convergencia C: " << itC << std::endl;
+      // }
+      itB++;
+    } while (!converge_B && itB < itB_max);
+    // if (converge_B) {
+    //   std::cout << "Saiu por convergencia B: " << itB << std::endl;
+    // }
 
     { // validate MIJ
       long double validatel;
@@ -188,17 +214,19 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   }
   // permite sair dos lacos ao encontrar 1 para cada localizacao
   out:
-  int find = 0;
-  for(i = 0; i < N; i++)
-  {
-    if (proposed_FINAL[i] == -1) {
-      // find  sequential unused
-      for (; find < N; find++) {
-        if (used[find] == -1) {
-          proposed_FINAL[i] = find;
-          used[find] = 1;
-          find++;
-          break;
+  if (check < N) {
+    int find = 0;
+    for(i = 0; i < N; i++)
+    {
+      if (proposed_FINAL[i] == -1) {
+        // find  sequential unused
+        for (; find < N; find++) {
+          if (used[find] == -1) {
+            proposed_FINAL[i] = find;
+            used[find] = 1;
+            find++;
+            break;
+          }
         }
       }
     }
