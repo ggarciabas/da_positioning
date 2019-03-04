@@ -51,6 +51,8 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   std::vector<int> proposed_FINAL;
   std::vector<int> proposed_UAV;
   std::vector<int> proposed_LOC;
+  std::vector<long double> z;
+  std::vector<long double> pun_v;
   // Mai
   std::vector<std::vector<long double> > m_ij;
   // variavel da tranformacao algebrica (parte do self-amplification)
@@ -80,9 +82,12 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
     proposed_FINAL.push_back(-1);
     proposed_UAV.push_back(-1);
     proposed_LOC.push_back(-1);
+    z.push_back(0.0);
+    pun_v.push_back(0.0);
   }
 
-  double gamma = 1; // o que faz?
+  long double gamma = 0.6; // o que faz?
+  long double lamb = 1;
   long double new_mij;
   int odd_even = 0;
   unsigned i, j, k;
@@ -95,92 +100,139 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   while (temp >= 1e-5)
   {
     std::cout << "---------------------------- temp: " << temp << "  odd_even: " << odd_even << std::endl;
-    std::cout << "...... BIJ\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
-      {
-        std::cout << b_ij[i][j] << "\t\t";
-      }  
-      std::cout << "]\n";    
-    }   
-    
-    std::cout << "...... MIJ\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
-      {
-        std::cout << m_ij[i][j] << "\t\t";
-      }  
-      std::cout << "]\n";    
-    }    
 
-    std::cout << "...... m_ij[i][j] * b_ij[i][j]\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
-      {
-        std::cout << m_ij[i][j] * b_ij[i][j] << "\t\t";
-      }  
-      std::cout << "]\n";    
+    if ((odd_even%2)==0) { // line total -- UAV
+      for (i = 0; i < N; ++i)
+      {   
+        pun_v[i] = 0.0;
+        for (k = 0; k < N; ++k)
+        {
+          pun_v[i] += m_ij[i][k]; // sum line -- hold line, change column
+        }
+        z[i] = 0.0;
+        for (k = 0; k < N; ++k)
+        {
+          z[i] += expl((gamma * o_ij[i][k] - m_ij[i][k] * b_ij[i][k] * b_ij[i][k] + ((pun_v[i]>1)?(1-temp)*lamb : 0)) / (long double) temp); // hold line, change column          
+        }
+      }
+    } else {  // column total -- LOC
+      for (i = 0; i < N; ++i)
+      {    
+        pun_v[i] = 0.0;
+        for (k = 0; k < N; ++k)
+        {
+          pun_v[i] += m_ij[k][i]; // sum column - hold column, change line
+        }
+        z[i] = 0.0;
+        for (k = 0; k < N; ++k)
+        {
+          z[i] += expl((gamma * o_ij[k][i] - m_ij[k][i] * b_ij[k][i] * b_ij[k][i] + ((pun_v[i]>1)?(1-temp)*lamb : 0)) / (long double) temp); // hold column, change lines
+        }
+      }
     }
 
-    std::cout << "...... m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
+    { // frufru
+      std::cout << "...... Z \n[";
+      for (i = 0; i < N; ++i)
       {
-        std::cout << (m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]) << "\t\t";
-      }  
-      std::cout << "]\n";    
-    }
+        std::cout << z[i] << "\t\t";
+      }
+      std::cout << "]\n";
 
-    std::cout << "...... gamma * o_ij[i][j]\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
+      std::cout << "...... PUN V \n[";
+      for (i = 0; i < N; ++i)
       {
-        std::cout << gamma*o_ij[i][j] << "\t\t";
-      }  
-      std::cout << "]\n";    
-    }
+        std::cout << pun_v[i] << "\t\t";
+      }
+      std::cout << "]\n";
 
-    std::cout << "...... gamma * o_ij[i][j] - m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
+      std::cout << "...... BIJ\n";
+      for (i = 0; i < N; ++i)
       {
-        std::cout << gamma * o_ij[i][j]-(m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]) << "\t\t";
-      }  
-      std::cout << "]\n";    
-    }
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << b_ij[i][j] << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }   
+      
+      std::cout << "...... MIJ\n";
+      for (i = 0; i < N; ++i)
+      {
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << m_ij[i][j] << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }    
 
-    std::cout << "...... QIJ/temp\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
+      std::cout << "...... m_ij[i][j] * b_ij[i][j]\n";
+      for (i = 0; i < N; ++i)
       {
-        std::cout << ((gamma * o_ij[i][j]-(m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]))/(long double)temp) << "\t\t";
-      }  
-      std::cout << "]\n";    
-    }
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << m_ij[i][j] * b_ij[i][j] << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }
 
-    std::cout << "...... exp QIJ/temp\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
+      std::cout << "...... m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]\n";
+      for (i = 0; i < N; ++i)
       {
-        std::cout << expl((gamma * o_ij[i][j]-(m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]))/(long double)temp) << "\t\t";
-      }  
-      std::cout << "]\n";    
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << (m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]) << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }
+
+      std::cout << "...... gamma * o_ij[i][j]\n";
+      for (i = 0; i < N; ++i)
+      {
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << gamma*o_ij[i][j] << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }
+
+      std::cout << "...... gamma * o_ij[i][j] - m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]\n";
+      for (i = 0; i < N; ++i)
+      {
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << gamma * o_ij[i][j] - (m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]) + ((odd_even%2==0 && pun_v[i]>1) ? (1-temp)*lamb : ((odd_even%2!=0 && pun_v[j]>1) ? (1-temp)*lamb : 0)) << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }
+
+      std::cout << "...... QIJ/temp\n";
+      for (i = 0; i < N; ++i)
+      {
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << ((gamma * o_ij[i][j] - (m_ij[i][j] * b_ij[i][j]  * b_ij[i][j]) +((odd_even%2==0 && pun_v[i]>1) ? (1-temp)*lamb : ((odd_even%2!=0 && pun_v[j]>1) ? (1-temp)*lamb : 0)))/(long double)temp) << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }
+
+      std::cout << "...... exp QIJ/temp\n";
+      for (i = 0; i < N; ++i)
+      {
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << expl((gamma * o_ij[i][j]-(m_ij[i][j] * b_ij[i][j]  * b_ij[i][j])+((odd_even%2==0 && pun_v[i]>1) ? (1-temp)*lamb : ((odd_even%2!=0 && pun_v[j]>1) ? (1-temp)*lamb : 0)))/(long double)temp) << "\t\t";
+        }  
+        std::cout << "]\n";    
+      }    
     }
 
     for (i = 0; i < N; ++i)
@@ -190,88 +242,52 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
         // calculate \lamb_{ij}
         lamb_ij[i][j] = m_ij[i][j] * b_ij[i][j];
         // calculate Q_{ij}
-        q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];
+        q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];        
         // calculate m_{ij}
-        new_mij = expl((q_ij[i][j] / (long double) temp));
+        new_mij = expl((q_ij[i][j] + ((odd_even%2==0 && pun_v[i]>1) ? (1-temp)*lamb : ((odd_even%2!=0 && pun_v[j]>1) ? (1-temp)*lamb : 0)) ) / (long double) temp) / ((odd_even%2==0) ? z[i] : z[j]); // apply normalization here, the change from line/column occurs above in the correct calculation of Z
         if (isnan(new_mij)) {
           std::cout << "NAN! \n";
           exit(1);
         }
         m_ij[i][j] = new_mij;
       }
-    }
+    }    
 
-    std::cout << "...... MIJ --------- calculated\n";
-    for (i = 0; i < N; ++i)
-    {
-      std::cout << "[";
-      for (j = 0; j < N; ++j)
-      {
-        std::cout << m_ij[i][j] << "\t\t";
-      }  
-      std::cout << "]\n";    
-    }
-
-    check = 0;
-    if ((odd_even%2) == 0) {
-      // UAV normalization
-      long double total;
-      for (i = 0; i < N; ++i)
-      {
-        total = 0.0;
-        for (k = 0; k < N; ++k)
+    { // validate MIJ
+      if (odd_even%2==0) {
+        long double validate;
+        std::cout << "...... MIJ --------- line\n";
+        for (i = 0; i < N; ++i)
         {
-          total += m_ij[i][k];
+          validate = 0.0;
+          std::cout << "[";
+          for (j = 0; j < N; ++j)
+          {
+            std::cout << m_ij[i][j] << "\t\t";
+            validate += m_ij[i][j];
+          }  
+          std::cout << "] = " << validate << "\n";    
         }
-        v_max = 0.0;
-        for (k = 0; k < N; ++k)
+      } else {
+        std::cout << "...... MIJ --------- column\n";
+        std::vector<long double> validate(N,0);
+        for (i = 0; i < N; ++i)
         {
-          new_mij = m_ij[i][k] / total;        
-          if (isnan(new_mij)) {
-            std::cout << "UAV norm NAN: " << m_ij[i][k] << " " << total << " " << i << " " << k << "\n";
-            exit(1);
-          }
-          if (new_mij > v_max) {
-            v_max = new_mij;
-            m_pos = k;
-          }
-          m_ij[i][k] = new_mij;
-          if (m_ij[i][k] == 1.0) {
-            check++;
-            proposed_FINAL[i] = k;
-          }
+          std::cout << "[";
+          for (j = 0; j < N; ++j)
+          {
+            std::cout << m_ij[i][j] << "\t\t";
+            validate[i] += m_ij[j][i];
+          }  
+          std::cout << "]\n";    
         }
-        proposed_UAV[i] = m_pos;
-      }
-    } else {
-      // LOC normalization
-      long double total;
-      for (i = 0; i < N; ++i)
-      {
-        total = 0.0;
-        for (k = 0; k < N; ++k)
+        std::cout << "---------------------------------------------------------\n";
+        std::cout << "[";
+        for (i = 0; i < N; ++i)
         {
-          total += m_ij[k][i];
+          std::cout << validate[i] << "\t\t";
         }
-        v_max = 0.0;
-        for (k = 0; k < N; ++k)
-        {
-          new_mij = m_ij[k][i] / total;
-          if (isnan(new_mij)) {
-            std::cout << "LOC norm NAN: " << m_ij[k][i] << " " << total << " " << i << " " << k << "\n";
-            exit(1);
-          }
-          if (new_mij > v_max) {
-            v_max = new_mij;
-            m_pos = k;
-          }
-          m_ij[k][i] = new_mij;
-          if (m_ij[k][i] == 1.0) {
-            check++;
-            proposed_FINAL[k] = i;
-          }
-        }
-        proposed_LOC[i] = m_pos;
+        std::cout << "]\n";
       }
     }
 
