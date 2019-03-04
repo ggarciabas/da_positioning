@@ -27,6 +27,186 @@ void PrintMatrix (std::vector<std::vector<long double> > matrix, std::string nam
 }
 
 std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int N) {
+  double temp = 0.9;
+  std::vector<int> proposed_FINAL;
+  std::vector<int> used;
+  // Mai
+  std::vector<std::vector<long double> > m_ij;
+  // variavel da tranformacao algebrica (parte do self-amplification)
+  std::vector<std::vector<long double> > o_ij;
+  // variavel da transformacao algebrica (parte o Y_sch)
+  std::vector<std::vector<long double> > lamb_ij;
+  // q_ai
+  std::vector<std::vector<long double> > q_ij;
+  // Ptr<UniformRandomVariable> e_ai = CreateObject<UniformRandomVariable>(); // Padrão [0,1]
+  // e_ai->SetAttribute ("Min", DoubleValue (min));
+  double rdom;
+
+  for (unsigned i = 0; i < N; ++i) // UAV
+  {
+    m_ij.push_back(std::vector<long double>());
+    o_ij.push_back(std::vector<long double>());
+    lamb_ij.push_back(std::vector<long double>());
+    q_ij.push_back(std::vector<long double>());
+    for (unsigned j = 0; j < N; ++j) // LOC
+    {
+      rdom = (double)rand()/RAND_MAX; // [0,1]
+      m_ij[i].push_back(1.0/(double)N + rdom);
+      o_ij[i].push_back(m_ij[i][j]);
+      lamb_ij[i].push_back(0.0);
+      q_ij[i].push_back(0.0);
+    }
+    proposed_FINAL.push_back(-1);
+    used.push_back(-1);
+  }
+
+  long double gamma = 1;
+  long double lamb = 1;
+  long double new_mij;
+  unsigned i, j, k;
+  long double v_max;
+  int check;
+
+  std::cout << std::fixed << std::setw(8) << std::setprecision(8);
+
+  while (temp >= 1e-3)
+  {
+    std::cout << "---------------------------- temp: " << temp << std::endl;
+
+    for (i = 0; i < N; ++i)
+    {   
+      used[i] = -1;
+    }
+
+    check = 0;
+    for (i = 0; i < N; ++i)
+    {
+      for (j = 0; j < N; ++j)
+      {
+        // calculate \lamb_{ij}
+        lamb_ij[i][j] = m_ij[i][j] * b_ij[i][j];
+        // calculate Q_{ij}
+        q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];        
+        // calculate m_{ij}
+        new_mij = expl((q_ij[i][j] / (long double) temp)); 
+        if (isnan(new_mij)) {
+          std::cout << "NAN! \n";
+          exit(1);
+        }
+        m_ij[i][j] = new_mij;        
+      }
+    }
+
+    long double total;
+    for (i = 0; i < N; ++i)
+    {
+      total = 0.0;
+      for (k = 0; k < N; ++k)
+      {
+        total += m_ij[i][k];
+      }
+      for (k = 0; k < N; ++k)
+      {
+        new_mij = m_ij[i][k] / total;
+        // if (m_ij[i][k] != new_mij) {
+        //   converge_B = converge_C = false;
+        // }
+        m_ij[i][k] = new_mij;
+      }
+    }
+
+    for (i = 0; i < N; ++i)
+    {
+      total = 0.0;
+      for (k = 0; k < N; ++k)
+      {
+          total += m_ij[k][i];
+      }
+      for (k = 0; k < N; ++k)
+      {
+          new_mij = m_ij[k][i] / total;
+          // if (m_ij[k][i] != new_mij) {
+          //     converge_B = converge_C = false;
+          // }
+          m_ij[k][i] = new_mij;
+      }
+    }
+
+    { // validate MIJ
+      long double validatel;
+      std::vector<long double> validate(N,0);
+      std::cout << "...... MIJ --------- line\n";
+      for (i = 0; i < N; ++i)
+      {
+        validatel = 0.0;
+        std::cout << "[";
+        for (j = 0; j < N; ++j)
+        {
+          std::cout << m_ij[i][j] << "\t\t";
+          validatel += m_ij[i][j];
+          validate[i] += m_ij[j][i];
+        }  
+        std::cout << "] = " << validatel << "\n";    
+      }
+      std::cout << "---------------------------------------------------------\n";
+      std::cout << "[";
+      for (i = 0; i < N; ++i)
+      {
+        std::cout << validate[i] << "\t\t";
+      }
+      std::cout << "]\n";
+    }
+
+    // Validate solution
+    for (i = 0; i < N; ++i)
+    {
+      for (j = 0; j < N; ++j)
+      {
+        if (m_ij[i][j] > 0.99999) {
+          check++;
+          proposed_FINAL[i] = j;
+          used[j] = 1;  
+          break;
+        }
+      }
+    }
+
+    std::cout << "proposed_FINAL \n[";
+    for(i = 0; i < N; i++)
+    {
+      std::cout << proposed_FINAL[i] << "\t\t";
+    }
+    std::cout << "]\n";
+
+    if (check == N) {
+      goto out;
+    }
+
+    temp *= 0.99;
+    o_ij = m_ij;
+    std::cout << " ---------------------------------------- \n";
+  }
+  // permite sair dos lacos ao encontrar 1 para cada localizacao
+  out:
+  int find = 0;
+  for(i = 0; i < N; i++)
+  {
+    if (proposed_FINAL[i] == -1) {
+      // find  sequential unused
+      for (; find < N; find++) {
+        if (used[find] == -1) {
+          proposed_FINAL[i] = find;
+          used[find] = 1;
+          find++;
+          break;
+        }
+      }
+    }
+  }
+  return proposed_FINAL;
+}
+
+std::vector<int> DA_Rangarajan_Rose (std::vector<std::vector<long double> > b_ij, int N) {
   // normalize bij
   double max = 0;
   for (unsigned i = 0; i < N; ++i) // UAV
@@ -219,7 +399,7 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
   return proposed_FINAL;
 }
 
-std::vector<int> da_positioning (std::vector<std::vector<long double> > c_ji, int N) { //, std::string path) {
+std::vector<int> DA_Rose (std::vector<std::vector<long double> > c_ji, int N) { //, std::string path) {
   long double temp = 0.3, t_min=9e-6, alpha, max, cost, cost_FINAL = 5.0; // alpha punicao de capacidade
   int check, p_max;
 
