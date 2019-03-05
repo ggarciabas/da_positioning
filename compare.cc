@@ -28,7 +28,7 @@ int main () {
 
     std::vector<int> sol_exh_uav (exhaustive (c_ji, N, 1));
     // std::vector<int> sol_exh_loc (exhaustive (c_ji, N, 2));
-    std::vector<int> sol_pro (da_positioning(c_ji, N));
+    std::vector<int> sol_pro (DA_Rangarajan(c_ji, N));
     std::vector<int> sol_rnd;
 
     for (int i = 0; i<N; ++i) {
