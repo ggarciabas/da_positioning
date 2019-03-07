@@ -13,7 +13,9 @@ int main () {
         c_ji.push_back(std::vector<long double>());
         for (int j = 0; j<N; ++j) {
             c_ji[i].push_back(0.0);
-            std::cin >> c_ji[i][j];
+            // std::cin >> c_ji[i][j];
+            scanf("%Lf,", &c_ji[i][j]);
+            std::cout << c_ji[i][j] << "\t";
         }
     }
     std::ofstream file;
