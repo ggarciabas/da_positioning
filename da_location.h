@@ -97,7 +97,7 @@ std::vector<int> DA_Rangarajan (std::vector<std::vector<long double> > b_ij, int
           q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];        
           // calculate m_{ij}
           new_mij = expl((q_ij[i][j] / (long double) temp)); 
-          if (isnan(new_mij)) {
+          if (std::isnan(new_mij)) {
             std::cout << "NAN! \n";
             exit(1);
           }
@@ -342,7 +342,7 @@ std::vector<int> DA_Rangarajan_Rose (std::vector<std::vector<long double> > b_ij
         q_ij[i][j] =  gamma * o_ij[i][j] - lamb_ij[i][j] * b_ij[i][j];        
         // calculate m_{ij}
         new_mij = expl((q_ij[i][j] / (long double) temp)) / ((odd_even%2==0) ? z[i] : z[j]); // apply normalization here, the change from line/column occurs above in the correct calculation of Z
-        if (isnan(new_mij)) {
+        if (std::isnan(new_mij)) {
           std::cout << "NAN! \n";
           exit(1);
         }

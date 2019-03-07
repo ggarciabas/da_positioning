@@ -1,3 +1,12 @@
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <iomanip>
+#include <cmath>
+#include <istream>
+#include <time.h>
 #include "da_location.h"
 
 int main () {
