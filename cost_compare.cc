@@ -33,5 +33,17 @@ int main () {
         file << sol_exh_uav[i] << ",";
     }
     file << std::endl;
+    std::vector<int> sol_rnd;
+    for (int i = 0; i<N; ++i) {
+        sol_rnd.push_back(i);
+        file << i << ","; // sequential
+    }    
+    file << std::endl;
+    auto rng = std::default_random_engine {};
+    std::shuffle(std::begin(sol_rnd), std::end(sol_rnd), rng);
+    for (int i = 0; i<N; ++i) {
+        file << sol_rnd[i] << ","; // random
+    }
+    file << std::endl;
     file.close();
 }
